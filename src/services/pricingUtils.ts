@@ -52,6 +52,25 @@ export interface PriceBreakdown {
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
+/**
+ * Parse a YYYY-MM-DD string as a local-timezone Date (midnight local).
+ * `new Date('2024-04-27')` parses as UTC midnight, which in negative-offset
+ * timezones rolls back to the previous day when read with local getters —
+ * causing off-by-one bugs in the breakdown.
+ */
+export function parseLocalDate(s: string): Date {
+  const [y, m, d] = s.split('-').map(Number);
+  return new Date(y, (m || 1) - 1, d || 1);
+}
+
+/** Format a Date as YYYY-MM-DD using local components (NOT UTC). */
+export function formatLocalDate(d: Date): string {
+  const y = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${y}-${mm}-${dd}`;
+}
+
 /** Format 24h time string to readable format (e.g. "14:00" → "2 PM" / "٢ م") */
 export function formatTime(time: string, lang = 'en'): string {
   const [h, m] = time.split(':').map(Number);
@@ -111,14 +130,14 @@ export function calculateTotalPrice(
   pricing: PricingSettings,
   slotId?: string
 ): PriceBreakdown {
-  const start = new Date(checkIn);
-  const end = new Date(checkOut);
+  const start = parseLocalDate(checkIn);
+  const end = parseLocalDate(checkOut);
   const specialMap = new Map(pricing.special_dates.map(s => [s.date, s.price]));
 
   // Day Use: check-in === check-out
   const isDayUse = checkIn === checkOut;
   if (isDayUse) {
-    const dateStr = start.toISOString().split('T')[0];
+    const dateStr = checkIn;
     const dow = start.getDay();
     const dayLabel = DAY_LABELS[dow];
 
@@ -187,7 +206,7 @@ export function calculateTotalPrice(
 
   const cursor = new Date(start);
   while (cursor < end) {
-    const dateStr = cursor.toISOString().split('T')[0];
+    const dateStr = formatLocalDate(cursor);
     const dow = cursor.getDay();
     const dayLabel = DAY_LABELS[dow];
 

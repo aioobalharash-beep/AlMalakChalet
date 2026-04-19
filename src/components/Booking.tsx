@@ -9,7 +9,7 @@ import { uploadToCloudinary } from '../services/cloudinary';
 import { sendWhatsAppInvoice } from './Invoices';
 import { collection, query, orderBy, onSnapshot, doc, getDoc } from 'firebase/firestore';
 import { db } from '../services/firebase';
-import { calculateTotalPrice, formatBreakdown, migratePricing, formatTime, getSlotRateForDay, type PricingSettings, type PriceBreakdown, type DayUseSlot } from '../services/pricingUtils';
+import { calculateTotalPrice, formatBreakdown, migratePricing, formatTime, getSlotRateForDay, formatLocalDate, parseLocalDate, type PricingSettings, type PriceBreakdown, type DayUseSlot } from '../services/pricingUtils';
 import type { Property } from '../types';
 import { useTranslation } from 'react-i18next';
 import { bl } from '../utils/bilingual';
@@ -264,10 +264,17 @@ export const Booking: React.FC = () => {
       if (!nights) return null;
       const perNight: PriceBreakdown['per_night'] = [];
       const dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      // Iterate strictly from the check-in date for `nights` iterations using
+      // local-time arithmetic, so the breakdown matches the days the guest
+      // actually sleeps at the chalet (no UTC drift).
       const cursor = new Date(currentYear, currentMonth, selectedDates.start);
       for (let i = 0; i < nights; i++) {
-        const dateStr = cursor.toISOString().split('T')[0];
-        perNight.push({ date: dateStr, dayLabel: dayLabels[cursor.getDay()], rate: eventRate, isSpecial: false });
+        perNight.push({
+          date: formatLocalDate(cursor),
+          dayLabel: dayLabels[cursor.getDay()],
+          rate: eventRate,
+          isSpecial: false,
+        });
         cursor.setDate(cursor.getDate() + 1);
       }
       const subtotal = eventRate * nights;
@@ -827,7 +834,7 @@ export const Booking: React.FC = () => {
             {priceBreakdown.per_night.map(n => (
               <div key={n.date} className="flex justify-between text-xs">
                 <span className="text-primary-navy/50">
-                  {new Date(n.date).toLocaleDateString(lang === 'ar' ? 'ar-OM' : 'en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}
+                  {parseLocalDate(n.date).toLocaleDateString(lang === 'ar' ? 'ar-OM' : 'en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}
                   {n.isSpecial && <span className="ms-1 text-secondary-gold font-bold">({t('booking.special')})</span>}
                 </span>
                 <span className="font-bold text-primary-navy">{n.rate} {t('common.omr')}</span>
