@@ -32,6 +32,8 @@ interface PropertyDetails {
   whatsappNumber: string;
   licenseNumber: string;
   quickFacts?: { icon: string; label: string; label_ar: string }[];
+  aboutEn: string;
+  aboutAr: string;
 }
 
 const DEFAULT_PRICING: PricingSettings = {
@@ -74,6 +76,8 @@ const DEFAULT_DATA: PropertyDetails = {
   footerText: { en: '', ar: '' },
   whatsappNumber: '',
   licenseNumber: '',
+  aboutEn: '',
+  aboutAr: '',
 };
 
 const inputClass = "w-full bg-pearl-white border border-primary-navy/10 rounded-xl py-3 px-4 text-sm font-medium focus:ring-1 focus:ring-secondary-gold/50 outline-none";
@@ -130,6 +134,8 @@ const PropertyEditorComponent: React.FC = () => {
             features,
             features_ar: data.features_ar || features.map(() => ''),
             pricing: { ...DEFAULT_PRICING, ...migratePricing(data.pricing || {}) },
+            aboutEn: typeof data.aboutEn === 'string' ? data.aboutEn : '',
+            aboutAr: typeof data.aboutAr === 'string' ? data.aboutAr : '',
           });
         }
       })
@@ -610,6 +616,46 @@ const PropertyEditorComponent: React.FC = () => {
             <input type="text" value={form.bankPhone} onChange={(e) => setForm(prev => ({ ...prev, bankPhone: e.target.value }))} placeholder="e.g. +968 9000 0000" className={inputClass} />
             <p className="text-[10px] text-primary-navy/40 font-medium">Shown to guests for WhatsApp/bank app transfers. Leave blank to hide.</p>
           </div>
+        </div>
+      </section>
+
+      {/* About Us */}
+      <section className="bg-white rounded-[20px] p-6 border border-primary-navy/5 shadow-sm space-y-5">
+        <div className="flex items-center gap-2">
+          <FileText size={16} className="text-secondary-gold" />
+          <h3 className="text-sm font-bold text-primary-navy uppercase tracking-wide">About Us</h3>
+        </div>
+        <p className="text-[10px] text-primary-navy/40 font-medium">
+          Long-form story shown on the public About page. Separate paragraphs with a blank line.
+        </p>
+        <div className="space-y-1.5">
+          <label className="text-[10px] font-bold uppercase tracking-widest text-secondary-gold">About (English)</label>
+          <textarea
+            value={form.aboutEn}
+            onChange={(e) => setForm(prev => ({ ...prev, aboutEn: e.target.value }))}
+            rows={8}
+            placeholder={"e.g.\nAl Malak Chalet is a luxury retreat nestled in the heart of Oman...\n\nEvery detail has been curated for the modern traveler..."}
+            className={cn(inputClass, "leading-relaxed resize-none")}
+          />
+          <p className="text-[10px] text-primary-navy/40 font-medium">
+            {form.aboutEn.length > 0 ? `${form.aboutEn.length} characters` : 'Leave blank to show the default About text.'}
+          </p>
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-[10px] font-bold uppercase tracking-widest text-secondary-gold flex items-center gap-1.5">
+            <Languages size={12} /> About (Arabic)
+          </label>
+          <textarea
+            dir="rtl"
+            value={form.aboutAr}
+            onChange={(e) => setForm(prev => ({ ...prev, aboutAr: e.target.value }))}
+            rows={8}
+            placeholder="اكتب نص ‘من نحن’ بالعربية..."
+            className={cn(inputClass, "leading-relaxed resize-none")}
+          />
+          <p className="text-[10px] text-primary-navy/40 font-medium">
+            {form.aboutAr.length > 0 ? `${form.aboutAr.length} characters` : 'Leave blank to show English version for Arabic users.'}
+          </p>
         </div>
       </section>
 

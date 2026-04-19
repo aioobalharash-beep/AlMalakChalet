@@ -205,6 +205,19 @@ export const firestoreProperties = {
     if (!snap.exists()) return null;
     return { id: snap.id, ...snap.data() };
   },
+
+  // ── Property details (settings/property_details) ──
+  // Single-document store backing the public site and the Edit Property admin screen.
+  // Accepts any long-form fields (aboutEn, aboutAr, termsOfStay, footerText, description, etc.)
+  // and merges them without clobbering unrelated keys.
+  async getDetails(): Promise<Record<string, any> | null> {
+    const snap = await getDoc(doc(db, 'settings', 'property_details'));
+    return snap.exists() ? (snap.data() as Record<string, any>) : null;
+  },
+
+  async updateProperty(patch: Record<string, any>) {
+    await setDoc(doc(db, 'settings', 'property_details'), patch, { merge: true });
+  },
 };
 
 // ── Bookings ──
