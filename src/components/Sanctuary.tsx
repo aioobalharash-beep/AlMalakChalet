@@ -217,10 +217,12 @@ export const Sanctuary: React.FC = () => {
             >
               <OptimizedImage
                 src={img.url}
-                alt={img.label}
+                alt={img.label || ''}
                 className="aspect-[4/5] md:aspect-video rounded-[20px] bg-primary-navy/5 shadow-sm"
               />
-              <p className="mt-3 font-bold text-primary-navy/80 text-sm px-1">{img.label}</p>
+              {img.label && img.label.trim() !== '' && (
+                <p className="mt-3 font-bold text-primary-navy/80 text-sm px-1">{img.label}</p>
+              )}
             </motion.div>
           ))}
         </div>

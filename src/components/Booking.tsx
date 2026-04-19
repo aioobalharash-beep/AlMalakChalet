@@ -27,7 +27,9 @@ export const Booking: React.FC = () => {
   const [guestPhone, setGuestPhone] = useState('');
   const [guestEmail, setGuestEmail] = useState('');
   const [selectedDates, setSelectedDates] = useState<{ start: number | null; end: number | null }>({ start: null, end: null });
-  const [paymentMethod, setPaymentMethod] = useState<'thawani' | 'bank_transfer'>('thawani');
+  // Thawani temporarily hidden from the public UI; bank transfer is the only guest-visible option.
+  const SHOW_THAWANI = false;
+  const [paymentMethod, setPaymentMethod] = useState<'thawani' | 'bank_transfer'>('bank_transfer');
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [receiptFileName, setReceiptFileName] = useState('');
 
@@ -797,26 +799,28 @@ export const Booking: React.FC = () => {
       {(isDayUse || nights > 0) && (
         <section className="space-y-4">
           <label className="text-[10px] font-bold uppercase tracking-widest text-secondary-gold">{t('booking.paymentMethod')} *</label>
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              type="button"
-              onClick={() => setPaymentMethod('thawani')}
-              className={cn(
-                "relative p-5 rounded-[20px] border-2 transition-all text-start space-y-2",
-                paymentMethod === 'thawani'
-                  ? "border-primary-navy bg-primary-navy/5"
-                  : "border-primary-navy/10 bg-white hover:border-primary-navy/20"
-              )}
-            >
-              {paymentMethod === 'thawani' && (
-                <div className="absolute top-3 end-3 w-5 h-5 bg-primary-navy rounded-full flex items-center justify-center">
-                  <Check size={12} className="text-white" />
-                </div>
-              )}
-              <CreditCard size={22} className={paymentMethod === 'thawani' ? "text-primary-navy" : "text-primary-navy/40"} />
-              <p className="text-sm font-bold text-primary-navy">{t('booking.thawani')}</p>
-              <p className="text-[10px] text-primary-navy/50 font-medium">Instant online payment</p>
-            </button>
+          <div className={cn("grid gap-3", SHOW_THAWANI ? "grid-cols-2" : "grid-cols-1")}>
+            {SHOW_THAWANI && (
+              <button
+                type="button"
+                onClick={() => setPaymentMethod('thawani')}
+                className={cn(
+                  "relative p-5 rounded-[20px] border-2 transition-all text-start space-y-2",
+                  paymentMethod === 'thawani'
+                    ? "border-primary-navy bg-primary-navy/5"
+                    : "border-primary-navy/10 bg-white hover:border-primary-navy/20"
+                )}
+              >
+                {paymentMethod === 'thawani' && (
+                  <div className="absolute top-3 end-3 w-5 h-5 bg-primary-navy rounded-full flex items-center justify-center">
+                    <Check size={12} className="text-white" />
+                  </div>
+                )}
+                <CreditCard size={22} className={paymentMethod === 'thawani' ? "text-primary-navy" : "text-primary-navy/40"} />
+                <p className="text-sm font-bold text-primary-navy">{t('booking.thawani')}</p>
+                <p className="text-[10px] text-primary-navy/50 font-medium">Instant online payment</p>
+              </button>
+            )}
 
             <button
               type="button"

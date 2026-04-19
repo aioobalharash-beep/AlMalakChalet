@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { Eye, EyeOff, LogIn, UserPlus, AlertCircle, ArrowLeft, Mail } from 'lucide-react';
+import { Eye, EyeOff, LogIn, AlertCircle, ArrowLeft, Mail } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { sendPasswordResetEmail } from '../services/firebase';
-import { cn } from '@/src/lib/utils';
 import { useTranslation } from 'react-i18next';
 import { LanguageToggle } from './LanguageToggle';
 import { getClientConfig } from '../config/clientConfig';
@@ -12,13 +11,10 @@ import { BrandMark } from './BrandMark';
 
 export const Login: React.FC = () => {
   const navigate = useNavigate();
-  const { login, register, logout } = useAuth();
+  const { login, logout } = useAuth();
   const config = getClientConfig();
-  const [isRegister, setIsRegister] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -48,19 +44,14 @@ export const Login: React.FC = () => {
     setLoading(true);
 
     try {
-      if (isRegister) {
-        if (!name.trim()) { setError('Name is required'); setLoading(false); return; }
-        await register({ name: name.trim(), email, password, phone: phone || undefined });
-      } else {
-        const signedIn = await login(email, password);
-        const adminEmail = (config.admin.email || '').trim().toLowerCase();
-        const entered = email.trim().toLowerCase();
-        if (signedIn.role === 'admin' && adminEmail && entered !== adminEmail) {
-          await logout();
-          setError('This account is not authorized as an administrator.');
-          setLoading(false);
-          return;
-        }
+      const signedIn = await login(email, password);
+      const adminEmail = (config.admin.email || '').trim().toLowerCase();
+      const entered = email.trim().toLowerCase();
+      if (signedIn.role === 'admin' && adminEmail && entered !== adminEmail) {
+        await logout();
+        setError('This account is not authorized as an administrator.');
+        setLoading(false);
+        return;
       }
     } catch (err: any) {
       setError(err.message || 'Something went wrong');
@@ -73,7 +64,6 @@ export const Login: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-primary-navy flex items-center justify-center p-6">
-      {/* Language toggle */}
       <div className="fixed top-4 end-4 z-50">
         <LanguageToggle variant="dark" />
       </div>
@@ -85,7 +75,9 @@ export const Login: React.FC = () => {
       >
         <div className="flex flex-col items-center mb-10">
           <BrandMark variant="dark" size="lg" className="h-24 sm:h-28 mx-auto" />
-          <p className="text-white/40 text-[10px] uppercase tracking-[0.3em] font-bold mt-4 text-center">{t('common.luxuryDesertSanctuary')}</p>
+          <p className="text-white/40 text-[10px] uppercase tracking-[0.3em] font-bold mt-4 text-center">
+            {t('common.luxuryDesertSanctuary')}
+          </p>
         </div>
 
         <button
@@ -97,25 +89,10 @@ export const Login: React.FC = () => {
         </button>
 
         <div className="bg-white rounded-[28px] p-8 shadow-2xl">
-          <div className="flex gap-2 mb-8 bg-pearl-white rounded-xl p-1">
-            <button
-              onClick={() => { setIsRegister(false); setError(''); }}
-              className={cn(
-                "flex-1 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all",
-                !isRegister ? "bg-primary-navy text-white shadow" : "text-primary-navy/50"
-              )}
-            >
+          <div className="text-center mb-8">
+            <h2 className="font-headline text-2xl font-bold text-primary-navy">
               {t('login.signIn')}
-            </button>
-            <button
-              onClick={() => { setIsRegister(true); setError(''); }}
-              className={cn(
-                "flex-1 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all",
-                isRegister ? "bg-primary-navy text-white shadow" : "text-primary-navy/50"
-              )}
-            >
-              {t('login.register')}
-            </button>
+            </h2>
           </div>
 
           {error && (
@@ -130,19 +107,6 @@ export const Login: React.FC = () => {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            {isRegister && (
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-secondary-gold">{t('login.fullName')}</label>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. Ahmed Al-Said"
-                  className="w-full bg-pearl-white border-none rounded-xl py-3.5 px-5 focus:ring-1 focus:ring-secondary-gold/50 placeholder:text-primary-navy/20 text-sm"
-                />
-              </div>
-            )}
-
             <div className="space-y-1.5">
               <label className="text-[10px] font-bold uppercase tracking-widest text-secondary-gold">{t('login.email')}</label>
               <input
@@ -176,45 +140,27 @@ export const Login: React.FC = () => {
               </div>
             </div>
 
-            {!isRegister && (
-              <div className="flex justify-end">
-                {resetSent ? (
-                  <motion.p
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-600"
-                  >
-                    <Mail size={12} />
-                    {t('login.resetSent')}
-                  </motion.p>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={handleForgotPassword}
-                    disabled={resetLoading}
-                    className="text-[11px] font-bold text-secondary-gold hover:underline disabled:opacity-50"
-                  >
-                    {resetLoading ? t('common.loading') : t('login.forgotPassword')}
-                  </button>
-                )}
-              </div>
-            )}
-
-            {isRegister && (
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-secondary-gold">{t('login.phone')}</label>
-                <div className="flex gap-3">
-                  <div className="bg-pearl-white rounded-xl py-3.5 px-4 text-sm font-bold text-primary-navy/60">+968</div>
-                  <input
-                    type="text"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="9000 0000"
-                    className="flex-1 bg-pearl-white border-none rounded-xl py-3.5 px-5 focus:ring-1 focus:ring-secondary-gold/50 placeholder:text-primary-navy/20 text-sm"
-                  />
-                </div>
-              </div>
-            )}
+            <div className="flex justify-end">
+              {resetSent ? (
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-600"
+                >
+                  <Mail size={12} />
+                  {t('login.resetSent')}
+                </motion.p>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleForgotPassword}
+                  disabled={resetLoading}
+                  className="text-[11px] font-bold text-secondary-gold hover:underline disabled:opacity-50"
+                >
+                  {resetLoading ? t('common.loading') : t('login.forgotPassword')}
+                </button>
+              )}
+            </div>
 
             <button
               type="submit"
@@ -225,13 +171,12 @@ export const Login: React.FC = () => {
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : (
                 <>
-                  {isRegister ? <UserPlus size={18} /> : <LogIn size={18} />}
-                  {isRegister ? t('login.register') : t('login.signIn')}
+                  <LogIn size={18} />
+                  {t('login.signIn')}
                 </>
               )}
             </button>
           </form>
-
         </div>
 
         <p className="text-white/20 text-[10px] text-center mt-8 uppercase tracking-widest font-bold">

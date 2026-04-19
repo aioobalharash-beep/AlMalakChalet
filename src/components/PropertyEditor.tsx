@@ -160,7 +160,7 @@ const PropertyEditorComponent: React.FC = () => {
     setUploading(true);
     try {
       const url = await uploadPropertyImage(file);
-      setForm(prev => ({ ...prev, gallery: [...prev.gallery, { url, label: newLabel || `Image ${prev.gallery.length + 1}` }] }));
+      setForm(prev => ({ ...prev, gallery: [...prev.gallery, { url, label: newLabel.trim() }] }));
       setNewLabel('');
     } catch (err) { console.error('Upload error:', err); }
     finally { setUploading(false); }
@@ -252,13 +252,15 @@ const PropertyEditorComponent: React.FC = () => {
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {form.gallery.map((img, i) => (
             <div key={i} className="relative group aspect-[4/5] rounded-xl overflow-hidden bg-primary-navy/5">
-              <OptimizedImage src={img.url} alt={img.label} className="w-full h-full" />
+              <OptimizedImage src={img.url} alt={img.label || ''} className="w-full h-full" />
               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center">
                 <button onClick={() => removeImage(i)} className="opacity-0 group-hover:opacity-100 transition-opacity p-2 bg-white rounded-full shadow-lg"><X size={14} className="text-red-500" /></button>
               </div>
-              <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/60 to-transparent p-3">
-                <p className="text-white text-xs font-bold truncate">{img.label}</p>
-              </div>
+              {img.label && img.label.trim() !== '' && (
+                <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/60 to-transparent p-3">
+                  <p className="text-white text-xs font-bold truncate">{img.label}</p>
+                </div>
+              )}
             </div>
           ))}
           <label className="aspect-[4/5] rounded-xl border-2 border-dashed border-primary-navy/15 flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-secondary-gold/50 hover:bg-secondary-gold/[0.02] transition-all">
