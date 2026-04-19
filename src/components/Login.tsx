@@ -85,9 +85,9 @@ export const Login: React.FC = () => {
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-md"
       >
-        <div className="text-center mb-10">
-          <BrandMark variant="dark" size="lg" />
-          <p className="text-white/40 text-[10px] uppercase tracking-[0.3em] font-bold mt-2">{t('common.luxuryDesertSanctuary')}</p>
+        <div className="flex flex-col items-center mb-10">
+          <BrandMark variant="dark" size="lg" className="h-24 sm:h-28 mx-auto" />
+          <p className="text-white/40 text-[10px] uppercase tracking-[0.3em] font-bold mt-4 text-center">{t('common.luxuryDesertSanctuary')}</p>
         </div>
 
         <button
