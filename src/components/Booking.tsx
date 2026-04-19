@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight, ShieldCheck, AlertCircle, ArrowLeft, Upload,
 import { cn } from '@/src/lib/utils';
 import { propertiesApi, bookingsApi } from '../services/api';
 import { downloadTermsPDF } from '../services/pdf';
+import { uploadToCloudinary } from '../services/cloudinary';
 import { sendWhatsAppInvoice } from './Invoices';
 import { collection, query, orderBy, onSnapshot, doc, getDoc } from 'firebase/firestore';
 import { db } from '../services/firebase';
@@ -303,56 +304,12 @@ export const Booking: React.FC = () => {
     setErrors(prev => ({ ...prev, receipt: '' }));
   };
 
-  // Upload to Cloudinary with progress tracking and auto-optimization
-  const uploadToCloudinary = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
-
-      if (!cloudName) {
-        reject(new Error('Cloudinary cloud name is not configured'));
-        return;
-      }
-
-      const formData = new FormData();
-      formData.append('file', file as Blob);
-      formData.append('upload_preset', 'receipts_preset');
-      formData.append('folder', 'al-malak-receipts');
-
-      const xhr = new XMLHttpRequest();
-      xhr.open('POST', `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`);
-
-      xhr.upload.onprogress = (e) => {
-        if (e.lengthComputable) {
-          setUploadProgress(Math.round((e.loaded / e.total) * 100));
-        }
-      };
-
-      xhr.onload = () => {
-        setUploadProgress(null);
-        if (xhr.status >= 200 && xhr.status < 300) {
-          const res = JSON.parse(xhr.responseText);
-          resolve(res.secure_url);
-        } else {
-          let errorDetail = 'Upload failed';
-          try {
-            const errRes = JSON.parse(xhr.responseText);
-            errorDetail = errRes.error?.message || JSON.stringify(errRes);
-            console.error('Cloudinary Error Details:', errRes);
-          } catch {
-            console.error('Cloudinary Error Details:', xhr.status, xhr.responseText);
-          }
-          reject(new Error(errorDetail));
-        }
-      };
-
-      xhr.onerror = () => {
-        setUploadProgress(null);
-        console.error('Cloudinary Error Details: Network error - request failed');
-        reject(new Error('Network error — please check your connection'));
-      };
-      xhr.send(formData);
-    });
-  };
+  // Upload bank-transfer receipt via the shared Cloudinary service
+  const uploadReceipt = (file: File): Promise<string> =>
+    uploadToCloudinary(file, {
+      folder: 'al-malak-receipts',
+      onProgress: (pct) => setUploadProgress(pct),
+    }).finally(() => setUploadProgress(null));
 
   const handleSubmit = async () => {
     if (!validate() || !property || selectedDates.start === null || selectedDates.end === null) return;
@@ -368,7 +325,7 @@ export const Booking: React.FC = () => {
       let receiptURL: string | undefined;
       if (paymentMethod === 'bank_transfer' && receiptFile) {
         try {
-          receiptURL = await uploadToCloudinary(receiptFile);
+          receiptURL = await uploadReceipt(receiptFile);
         } catch (uploadErr: any) {
           console.error('Receipt upload failed:', uploadErr.message);
           setSubmitError(`Receipt upload failed: ${uploadErr.message}. Please try again.`);

@@ -6,6 +6,7 @@ import { ArrowLeft, Upload, X, Plus, Save, Check, Calendar, Tag, Percent, Landma
 import { cn } from '@/src/lib/utils';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../services/firebase';
+import { uploadToCloudinary as uploadImageToCloudinary } from '../services/cloudinary';
 import { migratePricing, formatTime, type PricingSettings, type DayUseSlot } from '../services/pricingUtils';
 import { type BilingualField, toBilingual } from '../utils/bilingual';
 
@@ -147,36 +148,18 @@ const PropertyEditorComponent: React.FC = () => {
     }
   };
 
-  // Cloudinary upload
-  const uploadToCloudinary = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
-      if (!cloudName) { reject(new Error('Cloudinary not configured')); return; }
-      const fd = new FormData();
-      fd.append('file', file as Blob);
-      fd.append('upload_preset', 'receipts_preset');
-      fd.append('folder', 'al-malak-property');
-      const xhr = new XMLHttpRequest();
-      xhr.open('POST', `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`);
-      xhr.upload.onprogress = (e) => {
-        if (e.lengthComputable) setUploadProgress(Math.round((e.loaded / e.total) * 100));
-      };
-      xhr.onload = () => {
-        setUploadProgress(null);
-        if (xhr.status >= 200 && xhr.status < 300) resolve(JSON.parse(xhr.responseText).secure_url);
-        else reject(new Error('Upload failed'));
-      };
-      xhr.onerror = () => { setUploadProgress(null); reject(new Error('Upload failed')); };
-      xhr.send(fd);
-    });
-  };
+  const uploadPropertyImage = (file: File): Promise<string> =>
+    uploadImageToCloudinary(file, {
+      folder: 'al-malak-property',
+      onProgress: (pct) => setUploadProgress(pct),
+    }).finally(() => setUploadProgress(null));
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
     try {
-      const url = await uploadToCloudinary(file);
+      const url = await uploadPropertyImage(file);
       setForm(prev => ({ ...prev, gallery: [...prev.gallery, { url, label: newLabel || `Image ${prev.gallery.length + 1}` }] }));
       setNewLabel('');
     } catch (err) { console.error('Upload error:', err); }

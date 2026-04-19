@@ -7,6 +7,7 @@ import { propertiesApi } from '../services/api';
 import { collection, query, orderBy, onSnapshot, doc, updateDoc, limit } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { firestoreBookings } from '../services/firestore';
+import { uploadToCloudinary } from '../services/cloudinary';
 import type { Property } from '../types';
 import { useTranslation } from 'react-i18next';
 
@@ -228,32 +229,11 @@ export const Guests: React.FC = () => {
     }
   };
 
-  const uploadReceipt = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
-      if (!cloudName) { reject(new Error('Cloudinary cloud name is not configured')); return; }
-      const formData = new FormData();
-      formData.append('file', file as Blob);
-      formData.append('upload_preset', 'receipts_preset');
-      formData.append('folder', 'al-malak-receipts');
-      const xhr = new XMLHttpRequest();
-      xhr.open('POST', `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`);
-      xhr.upload.onprogress = (e) => {
-        if (e.lengthComputable) setUploadProgress(Math.round((e.loaded / e.total) * 100));
-      };
-      xhr.onload = () => {
-        setUploadProgress(null);
-        if (xhr.status >= 200 && xhr.status < 300) {
-          const res = JSON.parse(xhr.responseText);
-          resolve(res.secure_url);
-        } else {
-          reject(new Error('Upload failed'));
-        }
-      };
-      xhr.onerror = () => { setUploadProgress(null); reject(new Error('Network error')); };
-      xhr.send(formData);
-    });
-  };
+  const uploadReceipt = (file: File): Promise<string> =>
+    uploadToCloudinary(file, {
+      folder: 'al-malak-receipts',
+      onProgress: (pct) => setUploadProgress(pct),
+    }).finally(() => setUploadProgress(null));
 
   const resetAddForm = () => {
     setAddForm({ name: '', phone: '', email: '', check_in: '', check_out: '', property_id: '', property_name: '' });
