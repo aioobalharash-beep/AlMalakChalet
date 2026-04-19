@@ -235,7 +235,7 @@ export const Guests: React.FC = () => {
       const formData = new FormData();
       formData.append('file', file as Blob);
       formData.append('upload_preset', 'receipts_preset');
-      formData.append('folder', 'alnakheel-receipts');
+      formData.append('folder', 'al-malak-receipts');
       const xhr = new XMLHttpRequest();
       xhr.open('POST', `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`);
       xhr.upload.onprogress = (e) => {
@@ -296,7 +296,7 @@ export const Guests: React.FC = () => {
       const parsedAmount = paymentMode === 'paid' ? parseFloat(amountPaid) : 0;
       await firestoreBookings.create({
         property_id: prop?.id || 'default',
-        property_name: prop?.name || 'Al-Nakheel Chalet',
+        property_name: prop?.name || 'Al Malak Chalet',
         guest_name: addForm.name.trim(),
         guest_phone: `+968${addForm.phone.replace(/\s/g, '')}`,
         guest_email: addForm.email || undefined,

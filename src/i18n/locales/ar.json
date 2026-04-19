@@ -16,8 +16,8 @@
     "adminPortal": "لوحة المدير"
   },
   "common": {
-    "alNakheel": "النخيل",
-    "luxuryDesertSanctuary": "واحة الفخامة الصحراوية",
+    "alMalak": "شاليه الملاك",
+    "luxuryDesertSanctuary": "شاليه فاخر",
     "curator": "المشرف",
     "notifications": "الإشعارات",
     "markAllRead": "تعيين الكل كمقروء",
@@ -97,7 +97,7 @@
   },
   "guests": {
     "guestManagement": "إدارة الضيوف",
-    "curatingHospitality": "صناعة الضيافة في النخيل",
+    "curatingHospitality": "صناعة الضيافة في شاليه الملاك",
     "pendingApproval": "بانتظار الموافقة",
     "upcomingArrivals": "الوصول القادم",
     "checkedIn": "مسجل الدخول",
@@ -191,7 +191,7 @@
     "area": "المساحة",
     "from": "ابتداءً من",
     "termsOfStay": "شروط الإقامة",
-    "aboutUs": "عن النخيل",
+    "aboutUs": "عن شاليه الملاك",
     "footerDesc": "شاليهات فاخرة مصممة للمسافر العصري في قلب المشهد الصحراوي العُماني.",
     "bookNow": "احجز الآن",
     "leaveReview": "أضف تقييمك"
@@ -226,7 +226,7 @@
   },
   "confirmation": {
     "bookingConfirmed": "تم تأكيد الحجز!",
-    "thankYou": "شكراً لاختياركم عقارات النخيل الفاخرة",
+    "thankYou": "شكراً لاختياركم شاليه الملاك",
     "bookingDetails": "تفاصيل الحجز",
     "property": "العقار",
     "guest": "الضيف",

@@ -17,18 +17,18 @@ export const About: React.FC = () => {
 
       <section className="text-center space-y-2">
         <span className="text-secondary-gold font-bold tracking-widest text-[10px] uppercase">Our Story</span>
-        <h2 className="font-headline text-3xl font-bold text-primary-navy">About Al-Nakheel</h2>
+        <h2 className="font-headline text-3xl font-bold text-primary-navy">About Al Malak Chalet</h2>
       </section>
 
       <div className="bg-white rounded-[20px] p-6 border border-primary-navy/5 shadow-sm space-y-6 text-sm text-primary-navy/70 leading-relaxed">
         <p>
-          Al-Nakheel Sanctuary is a luxury desert chalet nestled in the heart of Oman's breathtaking landscape. We blend modern comfort with traditional Omani heritage to create an unforgettable retreat experience.
+          Al Malak Chalet is a luxury chalet nestled in the heart of Oman's breathtaking landscape. We blend modern comfort with traditional Omani heritage to create an unforgettable retreat experience.
         </p>
         <p>
-          Our property features spacious living areas, a fully equipped culinary studio, private outdoor spaces, and panoramic desert views. Every detail has been curated to ensure our guests enjoy the highest standard of hospitality.
+          Our property features spacious living areas, a fully equipped culinary studio, private outdoor spaces, and panoramic views. Every detail has been curated to ensure our guests enjoy the highest standard of hospitality.
         </p>
         <p>
-          Whether you seek a peaceful escape, a family gathering, or a celebration with friends, Al-Nakheel provides the perfect setting with concierge service, daily maintenance, private parking, and secure perimeter access.
+          Whether you seek a peaceful escape, a family gathering, or a celebration with friends, Al Malak Chalet provides the perfect setting with concierge service, daily maintenance, private parking, and secure perimeter access.
         </p>
       </div>
 
@@ -37,21 +37,21 @@ export const About: React.FC = () => {
         <div className="space-y-3 text-sm text-primary-navy/70">
           <div className="flex items-center gap-3">
             <MapPin size={16} className="text-secondary-gold flex-shrink-0" />
-            <span>Al-Nakheel Estate, Muscat, Oman</span>
+            <span>Al Malak Chalet, Oman</span>
           </div>
           <div className="flex items-center gap-3">
             <Phone size={16} className="text-secondary-gold flex-shrink-0" />
-            <span>+968 9000 0000</span>
+            <span>+968 7191 9666</span>
           </div>
           <div className="flex items-center gap-3">
             <Mail size={16} className="text-secondary-gold flex-shrink-0" />
-            <span>info@alnakheel.om</span>
+            <span>nooralmalak901@gmail.com</span>
           </div>
         </div>
       </div>
 
       <p className="text-[10px] text-center text-primary-navy/30 font-bold uppercase tracking-widest">
-        Al-Nakheel Luxury Properties &mdash; Oman
+        Al Malak Chalet &mdash; Oman
       </p>
     </div>
   );

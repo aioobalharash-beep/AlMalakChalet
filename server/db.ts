@@ -4,7 +4,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const dbPath = path.join(__dirname, '..', 'alnakheel.db');
+const dbPath = path.join(__dirname, '..', 'al-malak.db');
 
 const db = new Database(dbPath);
 
@@ -115,7 +115,7 @@ function seedData() {
 
   // Users
   db.prepare(`INSERT INTO users (id, name, email, password, role, phone) VALUES (?, ?, ?, ?, ?, ?)`).run(
-    'u1', 'Ahmed Al-Said', 'ahmed@alnakheel.om', passwordHash, 'admin', '+968 9100 0001'
+    'u1', 'Al Malak Admin', 'nooralmalak901@gmail.com', passwordHash, 'admin', '+968 7191 9666'
   );
   db.prepare(`INSERT INTO users (id, name, email, password, role, phone) VALUES (?, ?, ?, ?, ?, ?)`).run(
     'u2', 'Salim Al-Harthy', 'salim@guest.com', clientHash, 'client', '+968 9200 0002'
@@ -123,7 +123,7 @@ function seedData() {
 
   // Properties
   const properties = [
-    ['p1', 'Al-Nakheel Sanctuary', 'Luxury Chalet', 12, 850, 120, 50, 'Premium luxury chalet with desert views'],
+    ['p1', 'Al Malak Chalet', 'Luxury Chalet', 12, 850, 120, 50, 'Premium luxury chalet'],
     ['p2', 'Al-Bustan Villa', 'Deluxe Villa', 8, 620, 180, 75, 'Exclusive beachfront villa'],
     ['p3', 'Royal Suite A', 'Royal Suite', 4, 320, 250, 100, 'Opulent royal suite with private pool'],
     ['p4', 'Coast View Chalet', 'Ocean Chalet', 6, 480, 150, 60, 'Stunning ocean view chalet'],

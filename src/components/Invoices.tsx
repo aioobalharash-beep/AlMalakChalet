@@ -48,7 +48,7 @@ export const Invoices: React.FC = () => {
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [selectedBooking, setSelectedBooking] = useState<RealtimeBooking | null>(null);
   const [whatsappTemplate, setWhatsappTemplate] = useState<string>(
-    `Assalamu Alaikum {{guest_name}},\n\nHere is your invoice for your stay at Al-Nakheel Sanctuary:\n\nBooking Ref: {{booking_id}}\nStay: {{stay_amount}} OMR\n{{deposit_line}}\nTotal: {{total_amount}} OMR\n{{receipt_line}}\n\nThank you for choosing Al-Nakheel.`
+    `Assalamu Alaikum {{guest_name}},\n\nHere is your invoice for your stay at Al Malak Chalet:\n\nBooking Ref: {{booking_id}}\nStay: {{stay_amount}} OMR\n{{deposit_line}}\nTotal: {{total_amount}} OMR\n{{receipt_line}}\n\nThank you for choosing Al Malak Chalet.`
   );
   const [licenseNumber, setLicenseNumber] = useState('');
   const [showTemplateEditor, setShowTemplateEditor] = useState(false);
@@ -99,7 +99,7 @@ export const Invoices: React.FC = () => {
   const bookingToInvoice = (b: RealtimeBooking): Invoice => {
     const lang = i18n.language;
     const isAr = lang === 'ar';
-    const propName = isAr ? 'محمية النخيل' : b.property_name;
+    const propName = isAr ? 'شاليه الملاك' : b.property_name;
     const deposit = Number(b.depositAmount) || Number(b.security_deposit) || 0;
     const stayTotal = Number(b.stayTotal) || (Number(b.grandTotal || b.total_amount) - deposit);
     const total = Number(b.grandTotal) || Number(b.total_amount) || (stayTotal + deposit);
@@ -448,7 +448,7 @@ export const Invoices: React.FC = () => {
         <div className="bg-surface-container-low rounded-xl p-4 flex items-center gap-3">
           <Building2 size={16} className="text-secondary-gold flex-shrink-0" />
           <p className="text-[10px] text-primary-navy/50 font-bold">
-            Tax ID: <span className="text-primary-navy">1009283746</span> &bull; VAT Rate: <span className="text-primary-navy">5%</span> &bull; Al-Nakheel Luxury Properties, Muscat, Oman
+            Tax ID: <span className="text-primary-navy">1009283746</span> &bull; VAT Rate: <span className="text-primary-navy">5%</span> &bull; Al Malak Chalet, Oman
           </p>
         </div>
       </section>

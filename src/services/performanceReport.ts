@@ -204,7 +204,7 @@ export function generatePerformanceReportPDF(data: PerformanceReportData) {
   drawFooter(doc, pw, ph);
 
   const rangeLabel = `${data.startDate}_${data.endDate}`;
-  doc.save(`Al-Nakheel-Performance-Report-${rangeLabel}.pdf`);
+  doc.save(`Al-Malak-Chalet-Performance-Report-${rangeLabel}.pdf`);
 }
 
 function drawFooter(doc: jsPDF, pw: number, ph: number) {
@@ -216,7 +216,7 @@ function drawFooter(doc: jsPDF, pw: number, ph: number) {
   doc.setFontSize(7);
   doc.setTextColor(160);
   doc.text(
-    'Al-Nakheel Luxury Properties: This is a computer-generated performance report.',
+    'Al Malak Chalet: This is a computer-generated performance report.',
     pw / 2, footerY, { align: 'center' }
   );
 }

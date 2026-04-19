@@ -15,7 +15,7 @@ export const Confirmation: React.FC = () => {
   const state = location.state as { booking?: any; propertyName?: string } | null;
 
   const booking = state?.booking;
-  const propertyName = state?.propertyName || 'Al-Nakheel Sanctuary';
+  const propertyName = state?.propertyName || 'Al Malak Chalet';
 
   const [bankPhone, setBankPhone] = useState('');
   const [licenseNumber, setLicenseNumber] = useState('');
@@ -52,7 +52,7 @@ export const Confirmation: React.FC = () => {
   const isDayUse = booking.check_in === booking.check_out;
   const lang = i18n.language;
   const isFullDay = isDayUse && (!booking.slot_name || /full\s*day/i.test(booking.slot_name));
-  const localizedProperty = lang === 'ar' ? 'محمية النخيل' : propertyName;
+  const localizedProperty = lang === 'ar' ? 'شاليه الملاك' : propertyName;
 
   const stayLabel = (() => {
     if (isDayUse) {
@@ -103,7 +103,7 @@ export const Confirmation: React.FC = () => {
     const phone = booking.guest_phone?.replace(/[^\d]/g, '') || '';
     const checkInFormatted = new Date(booking.check_in).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
     const message = encodeURIComponent(
-      `Al-Nakheel Sanctuary\n\nHere is your property location for your upcoming stay:\nhttps://maps.google.com/?q=23.5880,58.3829\n\nCheck-in: ${checkInFormatted}\n\nWe look forward to welcoming you!`
+      `Al Malak Chalet\n\nHere is your property location for your upcoming stay:\nhttps://maps.google.com/?q=23.5880,58.3829\n\nCheck-in: ${checkInFormatted}\n\nWe look forward to welcoming you!`
     );
     window.open(`https://wa.me/${phone}?text=${message}`, '_blank');
   };
@@ -234,14 +234,14 @@ export const Confirmation: React.FC = () => {
 
         {/* Minimal Footer */}
         <div className="pt-8 space-y-3">
-          <p className="text-secondary-gold font-headline font-bold text-lg">{t('common.alNakheel')}</p>
+          <p className="text-secondary-gold font-headline font-bold text-lg">{t('common.alMalak')}</p>
           <div className="flex gap-5 items-center justify-center">
             <button onClick={() => navigate('/terms')} className="text-[10px] text-primary-navy/40 underline font-bold uppercase tracking-widest">{t('sanctuary.termsOfStay')}</button>
             <span className="text-primary-navy/15">|</span>
             <button onClick={() => navigate('/about')} className="text-[10px] text-primary-navy/40 underline font-bold uppercase tracking-widest">{t('sanctuary.aboutUs')}</button>
           </div>
           <p className="text-[9px] text-primary-navy/25 font-bold uppercase tracking-widest">
-            &copy; Al-Nakheel Luxury Chalet. 2024
+            &copy; Al Malak Chalet. 2024
           </p>
         </div>
       </motion.div>

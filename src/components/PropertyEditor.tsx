@@ -49,12 +49,12 @@ const DEFAULT_PRICING: PricingSettings = {
 };
 
 const DEFAULT_DATA: PropertyDetails = {
-  name: { en: 'Al-Nakheel Sanctuary', ar: '' },
+  name: { en: 'Al Malak Chalet', ar: 'شاليه الملاك' },
   capacity: 12,
   area_sqm: 850,
   nightly_rate: 120,
   headline: { en: 'Curated Excellence', ar: '' },
-  description: { en: 'Nestled in the heart of the Omani landscape, Al-Nakheel offers an unparalleled blend of modern luxury and heritage-inspired architecture. Every corner of this estate has been curated to provide a seamless flow between indoor relaxation and outdoor majesty.', ar: '' },
+  description: { en: 'Nestled in the heart of the Omani landscape, Al Malak Chalet offers an unparalleled blend of modern luxury and heritage-inspired architecture. Every corner of this estate has been curated to provide a seamless flow between indoor relaxation and outdoor majesty.', ar: '' },
   features: ['Concierge Service', 'Daily Maintenance', 'Private Parking', 'Secure Perimeter'],
   features_ar: ['', '', '', ''],
   gallery: [
@@ -64,7 +64,7 @@ const DEFAULT_DATA: PropertyDetails = {
   ],
   pricing: DEFAULT_PRICING,
   bank_name: 'Bank Muscat',
-  account_name: 'Al-Nakheel Luxury Properties LLC',
+  account_name: 'Al Malak Chalet LLC',
   iban: 'OM12 0123 0000 0012 3456 789',
   bankPhone: '',
   termsOfStay: { en: '', ar: '' },
@@ -155,7 +155,7 @@ const PropertyEditorComponent: React.FC = () => {
       const fd = new FormData();
       fd.append('file', file as Blob);
       fd.append('upload_preset', 'receipts_preset');
-      fd.append('folder', 'alnakheel-property');
+      fd.append('folder', 'al-malak-property');
       const xhr = new XMLHttpRequest();
       xhr.open('POST', `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`);
       xhr.upload.onprogress = (e) => {
@@ -319,7 +319,7 @@ const PropertyEditorComponent: React.FC = () => {
           <label className="text-[10px] font-bold uppercase tracking-widest text-secondary-gold flex items-center gap-1.5">
             <Languages size={12} /> Property Name (Arabic)
           </label>
-          <input type="text" dir="rtl" value={form.name.ar} onChange={(e) => setForm(prev => ({ ...prev, name: { ...prev.name, ar: e.target.value } }))} placeholder="e.g. النخيل" className={inputClass} />
+          <input type="text" dir="rtl" value={form.name.ar} onChange={(e) => setForm(prev => ({ ...prev, name: { ...prev.name, ar: e.target.value } }))} placeholder="e.g. شاليه الملاك" className={inputClass} />
         </div>
       </section>
 
@@ -580,7 +580,7 @@ const PropertyEditorComponent: React.FC = () => {
           </div>
           <div className="space-y-1.5">
             <label className="text-[10px] font-bold uppercase tracking-widest text-secondary-gold">Account Name</label>
-            <input type="text" value={form.account_name} onChange={(e) => setForm(prev => ({ ...prev, account_name: e.target.value }))} placeholder="e.g. Al-Nakheel LLC" className={inputClass} />
+            <input type="text" value={form.account_name} onChange={(e) => setForm(prev => ({ ...prev, account_name: e.target.value }))} placeholder="e.g. Al Malak Chalet LLC" className={inputClass} />
           </div>
           <div className="space-y-1.5">
             <label className="text-[10px] font-bold uppercase tracking-widest text-secondary-gold">IBAN / Account Number</label>

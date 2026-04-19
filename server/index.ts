@@ -41,5 +41,5 @@ app.get('*', (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Al-Nakheel API server running on http://localhost:${PORT}`);
+  console.log(`Al Malak Chalet API server running on http://localhost:${PORT}`);
 });

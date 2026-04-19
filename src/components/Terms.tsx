@@ -44,7 +44,7 @@ export const Terms: React.FC = () => {
       </div>
 
       <p className="text-[10px] text-center text-primary-navy/30 font-bold uppercase tracking-widest">
-        Al-Nakheel Luxury Properties &mdash; Oman
+        Al Malak Chalet &mdash; Oman
       </p>
     </div>
   );

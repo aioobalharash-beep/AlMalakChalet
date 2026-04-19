@@ -148,7 +148,7 @@ function buildInvoiceHtml(
     year: 'numeric',
   });
 
-  const companyName = (invoice.chaletName || (isAr ? 'النخيل للعقارات الفاخرة' : 'Al-Nakheel Luxury Properties')).toUpperCase();
+  const companyName = (invoice.chaletName || (isAr ? 'شاليه الملاك' : 'Al Malak Chalet')).toUpperCase();
   const location = isAr ? 'مسقط، سلطنة عُمان' : 'Muscat, Sultanate of Oman';
   const regInfo = invoice.licenseNumber
     ? (isAr ? `ترخيص سياحي: ${invoice.licenseNumber}` : `Tourism License: ${invoice.licenseNumber}`)
@@ -163,7 +163,7 @@ function buildInvoiceHtml(
   const grandTotalLabel = isAr ? 'الإجمالي العام' : 'Grand Total';
 
   // Translate property name for Arabic
-  const localizedProperty = isAr ? 'محمية النخيل' : invoice.room_type;
+  const localizedProperty = isAr ? 'شاليه الملاك' : invoice.room_type;
 
   const fmtAmount = (n: number): string => {
     const val = n.toFixed(2);
@@ -206,8 +206,8 @@ function buildInvoiceHtml(
   const refId = invoice.id.slice(0, 8).toUpperCase();
 
   const footerText = isAr
-    ? 'النخيل للعقارات الفاخرة  |  مسقط، سلطنة عُمان  |  هذه فاتورة صادرة آلياً ولا تتطلب توقيعاً'
-    : 'Al-Nakheel Luxury Properties  |  Muscat, Sultanate of Oman  |  This is a computer-generated invoice.';
+    ? 'شاليه الملاك  |  سلطنة عُمان  |  هذه فاتورة صادرة آلياً ولا تتطلب توقيعاً'
+    : 'Al Malak Chalet  |  Sultanate of Oman  |  This is a computer-generated invoice.';
 
   // Build items HTML
   let itemsHtml = '';
@@ -307,7 +307,7 @@ function buildTermsHtml(
   const dir = isAr ? 'rtl' : 'ltr';
   const textStart = isAr ? 'text-right' : 'text-left';
 
-  const companyName = isAr ? 'النخيل للعقارات الفاخرة' : 'AL-NAKHEEL LUXURY PROPERTIES';
+  const companyName = isAr ? 'شاليه الملاك' : 'AL MALAK CHALET';
   const location = isAr ? 'مسقط، سلطنة عُمان' : 'Muscat, Sultanate of Oman';
   const title = isAr ? 'شروط الإقامة' : 'Terms of Stay';
 
@@ -320,8 +320,8 @@ function buildTermsHtml(
   });
 
   const footerText = isAr
-    ? 'النخيل للعقارات الفاخرة  |  مسقط، سلطنة عُمان  |  هذه الوثيقة لأغراض إعلامية فقط.'
-    : 'Al-Nakheel Luxury Properties  |  Muscat, Sultanate of Oman  |  This document is for informational purposes.';
+    ? 'شاليه الملاك  |  سلطنة عُمان  |  هذه الوثيقة لأغراض إعلامية فقط.'
+    : 'Al Malak Chalet  |  Sultanate of Oman  |  This document is for informational purposes.';
 
   // Convert newlines to paragraphs
   const bodyHtml = termsText
@@ -373,7 +373,7 @@ export async function generateInvoicePDF(
 export async function downloadInvoicePDF(invoice: InvoiceData, lang = 'en') {
   try {
     const doc = await generateInvoicePDF(invoice, lang);
-    doc.save(`Al-Nakheel-Invoice-${invoice.id.slice(0, 8).toUpperCase()}.pdf`);
+    doc.save(`Al-Malak-Chalet-Invoice-${invoice.id.slice(0, 8).toUpperCase()}.pdf`);
   } catch (err) {
     console.error('[PDF] Failed to download invoice PDF:', err);
     alert(
@@ -391,8 +391,8 @@ export async function downloadTermsPDF(termsText: string, lang = 'en') {
     );
     doc.save(
       lang === 'ar'
-        ? 'النخيل-شروط-الإقامة.pdf'
-        : 'Al-Nakheel-Terms-of-Stay.pdf',
+        ? 'شاليه-الملاك-شروط-الإقامة.pdf'
+        : 'Al-Malak-Chalet-Terms-of-Stay.pdf',
     );
   } catch (err) {
     console.error('[PDF] Failed to download terms PDF:', err);

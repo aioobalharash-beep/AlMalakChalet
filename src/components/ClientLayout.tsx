@@ -36,7 +36,7 @@ export const ClientLayout: React.FC = () => {
           to="/"
           className="font-headline text-xl font-bold text-primary-navy tracking-widest uppercase"
         >
-          {t('common.alNakheel')}
+          {t('common.alMalak')}
         </Link>
         <div className="flex items-center gap-3">
           <LanguageToggle />

@@ -16,8 +16,8 @@
     "adminPortal": "Admin Portal"
   },
   "common": {
-    "alNakheel": "Al-Nakheel",
-    "luxuryDesertSanctuary": "Luxury Desert Sanctuary",
+    "alMalak": "Al Malak Chalet",
+    "luxuryDesertSanctuary": "Luxury Chalet",
     "curator": "Curator",
     "notifications": "Notifications",
     "markAllRead": "Mark all read",
@@ -97,7 +97,7 @@
   },
   "guests": {
     "guestManagement": "Guest Management",
-    "curatingHospitality": "Curating hospitality for Al-Nakheel",
+    "curatingHospitality": "Curating hospitality for Al Malak Chalet",
     "pendingApproval": "Pending Approval",
     "upcomingArrivals": "Upcoming Arrivals",
     "checkedIn": "Checked In",
@@ -226,7 +226,7 @@
   },
   "confirmation": {
     "bookingConfirmed": "Booking Confirmed!",
-    "thankYou": "Thank you for choosing Al-Nakheel Luxury Properties",
+    "thankYou": "Thank you for choosing Al Malak Chalet",
     "bookingDetails": "Booking Details",
     "property": "Property",
     "guest": "Guest",

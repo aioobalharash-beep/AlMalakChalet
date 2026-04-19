@@ -51,7 +51,7 @@ export const Booking: React.FC = () => {
   const [pricingSettings, setPricingSettings] = useState<PricingSettings | null>(null);
 
   // Dynamic bank details from Firestore
-  const [bankDetails, setBankDetails] = useState({ bank_name: 'Bank Muscat', account_name: 'Al-Nakheel Luxury Properties LLC', iban: 'OM12 0123 0000 0012 3456 789', bankPhone: '' });
+  const [bankDetails, setBankDetails] = useState({ bank_name: 'Bank Muscat', account_name: 'Al Malak Chalet LLC', iban: 'OM12 0123 0000 0012 3456 789', bankPhone: '' });
 
   // Day-use slots
   const [dayUseSlots, setDayUseSlots] = useState<DayUseSlot[]>([]);
@@ -316,7 +316,7 @@ export const Booking: React.FC = () => {
       const formData = new FormData();
       formData.append('file', file as Blob);
       formData.append('upload_preset', 'receipts_preset');
-      formData.append('folder', 'alnakheel-receipts');
+      formData.append('folder', 'al-malak-receipts');
 
       const xhr = new XMLHttpRequest();
       xhr.open('POST', `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`);
@@ -543,7 +543,7 @@ export const Booking: React.FC = () => {
         <span className="text-secondary-gold font-bold tracking-widest text-[10px] uppercase">{t('booking.bookYourStay')}</span>
         <h2 className="font-headline text-4xl font-bold text-primary-navy">{t('booking.selectDates')}</h2>
         <p className="text-primary-navy/60 text-sm max-w-xs mx-auto">
-          Select your preferred dates and provide your details to finalize your experience at {property?.name || 'Al-Nakheel'}.
+          Select your preferred dates and provide your details to finalize your experience at {property?.name || 'Al Malak Chalet'}.
         </p>
       </section>
 
@@ -1068,7 +1068,7 @@ export const Booking: React.FC = () => {
                   </div>
                   <div>
                     <p className="font-headline text-sm font-bold text-primary-navy">{t('booking.termsOfStay')}</p>
-                    <p className="text-[10px] text-primary-navy/40 uppercase tracking-widest font-bold">Al-Nakheel Sanctuary</p>
+                    <p className="text-[10px] text-primary-navy/40 uppercase tracking-widest font-bold">Al Malak Chalet</p>
                   </div>
                 </div>
                 <button onClick={() => setShowTermsModal(false)} className="p-2 hover:bg-primary-navy/5 rounded-full transition-colors">

@@ -26,7 +26,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Restore session from localStorage
   useEffect(() => {
-    const stored = localStorage.getItem('alnakheel_user');
+    const stored = localStorage.getItem('almalak_user');
     if (stored) {
       try {
         const parsed = JSON.parse(stored);
@@ -36,15 +36,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (userData) {
               setUser(userData as User);
             } else {
-              localStorage.removeItem('alnakheel_user');
+              localStorage.removeItem('almalak_user');
             }
           })
           .catch(() => {
-            localStorage.removeItem('alnakheel_user');
+            localStorage.removeItem('almalak_user');
           })
           .finally(() => setIsLoading(false));
       } catch {
-        localStorage.removeItem('alnakheel_user');
+        localStorage.removeItem('almalak_user');
         setIsLoading(false);
       }
     } else {
@@ -54,18 +54,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = useCallback(async (email: string, password: string) => {
     const result = await authApi.login(email, password);
-    localStorage.setItem('alnakheel_user', JSON.stringify(result.user));
+    localStorage.setItem('almalak_user', JSON.stringify(result.user));
     setUser(result.user);
   }, []);
 
   const register = useCallback(async (data: { name: string; email: string; password: string; phone?: string }) => {
     const result = await authApi.register(data);
-    localStorage.setItem('alnakheel_user', JSON.stringify(result.user));
+    localStorage.setItem('almalak_user', JSON.stringify(result.user));
     setUser(result.user);
   }, []);
 
   const logout = useCallback(() => {
-    localStorage.removeItem('alnakheel_user');
+    localStorage.removeItem('almalak_user');
     setUser(null);
   }, []);
 

@@ -55,7 +55,7 @@ export const Login: React.FC = () => {
         await login(email, password);
         const adminEmail = config.admin.email;
         const entered = email.trim().toLowerCase();
-        const storedRaw = localStorage.getItem('alnakheel_user');
+        const storedRaw = localStorage.getItem('almalak_user');
         const stored = storedRaw ? JSON.parse(storedRaw) : null;
         if (stored?.role === 'admin' && adminEmail && entered !== adminEmail) {
           logout();

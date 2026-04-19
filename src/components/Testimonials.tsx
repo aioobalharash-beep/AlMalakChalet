@@ -28,7 +28,7 @@ export const Testimonials: React.FC = () => {
   const [form, setForm] = useState({
     guest_name: '',
     guest_phone: '',
-    property_name: 'Al-Nakheel Sanctuary',
+    property_name: 'Al Malak Chalet',
     rating: 0,
     text: '',
     stay_details: '',
@@ -61,7 +61,7 @@ export const Testimonials: React.FC = () => {
       setTestimonials(prev => [newT as Testimonial, ...prev]);
       setSubmitted(true);
       setShowForm(false);
-      setForm({ guest_name: '', guest_phone: '', property_name: 'Al-Nakheel Sanctuary', rating: 0, text: '', stay_details: '' });
+      setForm({ guest_name: '', guest_phone: '', property_name: 'Al Malak Chalet', rating: 0, text: '', stay_details: '' });
     } catch (err) {
       console.error('Failed to submit:', err);
     } finally {
@@ -83,7 +83,7 @@ export const Testimonials: React.FC = () => {
         <span className="text-secondary-gold font-bold tracking-widest text-[10px] uppercase">{t('testimonials.guestReviews')}</span>
         <h2 className="font-headline text-4xl font-bold text-primary-navy">{t('testimonials.shareExperience')}</h2>
         <p className="text-primary-navy/60 text-sm max-w-xs mx-auto">
-          Your feedback helps us craft the perfect desert retreat experience at Al-Nakheel.
+          Your feedback helps us craft the perfect retreat experience at Al Malak Chalet.
         </p>
       </section>
 
@@ -176,7 +176,7 @@ export const Testimonials: React.FC = () => {
             <textarea
               value={form.text}
               onChange={(e) => setForm(p => ({ ...p, text: e.target.value }))}
-              placeholder="Tell us about your stay at Al-Nakheel..."
+              placeholder="Tell us about your stay at Al Malak Chalet..."
               rows={4}
               className={cn("w-full bg-surface-container-low border rounded-xl py-3 px-4 text-sm placeholder:text-primary-navy/20 resize-none", errors.text ? "border-red-300" : "border-transparent")}
             />

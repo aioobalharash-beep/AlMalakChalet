@@ -178,7 +178,7 @@ export function generateVATReportPDF(data: VATReportData) {
   // ── FOOTER ──────────────────────────────────────────────
   drawFooter(doc, pw, ph);
 
-  doc.save(`Al-Nakheel-VAT-Report-${data.month.replace(/\s/g, '-')}.pdf`);
+  doc.save(`Al-Malak-Chalet-VAT-Report-${data.month.replace(/\s/g, '-')}.pdf`);
 }
 
 function drawFooter(doc: jsPDF, pw: number, ph: number) {
@@ -192,7 +192,7 @@ function drawFooter(doc: jsPDF, pw: number, ph: number) {
   doc.setFontSize(7);
   doc.setTextColor(160);
   doc.text(
-    'Al-Nakheel Luxury Properties: This is a computer-generated VAT summary report.',
+    'Al Malak Chalet: This is a computer-generated VAT summary report.',
     pw / 2, footerY, { align: 'center' }
   );
 }
