@@ -76,7 +76,35 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return;
     }
 
-    const tokens = tokensSnap.docs.map((d) => d.id);
+    // Dedupe by adminId: one admin = one active device. Fixes cases where a
+    // stale token lingers after a PWA reset, so the same phone doesn't get
+    // the same notification twice. Superseded tokens are deleted from
+    // Firestore so future sends are already clean.
+    const keptByAdmin = new Map<string, { id: string; millis: number }>();
+    const superseded: string[] = [];
+    for (const d of tokensSnap.docs) {
+      const data = d.data() as { adminId?: string; createdAt?: FirebaseFirestore.Timestamp; lastSeenAt?: FirebaseFirestore.Timestamp };
+      const adminId = data.adminId || d.id;
+      const millis =
+        data.lastSeenAt?.toMillis?.() ?? data.createdAt?.toMillis?.() ?? 0;
+      const existing = keptByAdmin.get(adminId);
+      if (!existing) {
+        keptByAdmin.set(adminId, { id: d.id, millis });
+      } else if (millis > existing.millis) {
+        superseded.push(existing.id);
+        keptByAdmin.set(adminId, { id: d.id, millis });
+      } else {
+        superseded.push(d.id);
+      }
+    }
+
+    if (superseded.length) {
+      const batch = firestore.batch();
+      superseded.forEach((t) => batch.delete(firestore.doc(`admin_tokens/${t}`)));
+      await batch.commit();
+    }
+
+    const tokens = Array.from(keptByAdmin.values()).map((v) => v.id);
     const title = '🛎️ حجز جديد! (New Booking!)';
     const body = `${guest_name} has booked for ${total_amount} OMR.`;
 
@@ -122,6 +150,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       delivered: response.successCount,
       failed: response.failureCount,
       pruned: stale.length,
+      deduped: superseded.length,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

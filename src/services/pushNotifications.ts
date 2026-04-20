@@ -1,5 +1,5 @@
 import { getMessaging, getToken, onMessage, isSupported, Messaging } from 'firebase/messaging';
-import { doc, setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, setDoc, deleteDoc, getDocs, query, where, serverTimestamp } from 'firebase/firestore';
 import app, { db } from './firebase';
 
 const ADMIN_TOKENS_COLLECTION = 'admin_tokens';
@@ -58,6 +58,23 @@ export async function enableAdminPushNotifications(
     });
 
     if (!token) return { status: 'error', error: 'Empty FCM token' };
+
+    // One admin = one active token. Purge any prior tokens for this adminId
+    // (e.g. a stale token from before a PWA reset that Apple hasn't invalidated
+    // yet) so bookings don't trigger duplicate notifications on the same
+    // device.
+    try {
+      const existing = await getDocs(
+        query(collection(db, ADMIN_TOKENS_COLLECTION), where('adminId', '==', adminId))
+      );
+      await Promise.all(
+        existing.docs
+          .filter((d) => d.id !== token)
+          .map((d) => deleteDoc(d.ref))
+      );
+    } catch {
+      // non-fatal — server also dedupes on send
+    }
 
     await setDoc(doc(db, ADMIN_TOKENS_COLLECTION, token), {
       token,
