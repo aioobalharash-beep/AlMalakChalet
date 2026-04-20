@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Banknote, Star, ChevronLeft, ChevronRight, User, X, ArrowRight, Clock, Sparkles, Pin, Trash2, MessageSquare } from 'lucide-react';
+import { Banknote, Bell, BellOff, Star, ChevronLeft, ChevronRight, User, X, ArrowRight, Clock, Sparkles, Pin, Trash2, MessageSquare } from 'lucide-react';
 import { cn } from '@/src/lib/utils';
 import { dashboardApi } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
@@ -9,6 +9,7 @@ import { useTranslation } from 'react-i18next';
 import { collection, query, orderBy, onSnapshot, doc, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { formatTime } from '../services/pricingUtils';
+import { enableAdminPushNotifications, onForegroundPush } from '../services/pushNotifications';
 
 interface DashboardData {
   revenue: { total: number; trend: number };
@@ -64,6 +65,42 @@ export const Dashboard: React.FC = () => {
   const [calMonth, setCalMonth] = useState(new Date().getMonth());
   const [calYear, setCalYear] = useState(new Date().getFullYear());
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
+
+  // Push notifications
+  const [pushStatus, setPushStatus] = useState<NotificationPermission | 'unsupported'>(
+    typeof Notification !== 'undefined' ? Notification.permission : 'unsupported'
+  );
+  const [pushBusy, setPushBusy] = useState(false);
+  const [pushError, setPushError] = useState<string | null>(null);
+  const [pushToast, setPushToast] = useState<{ title: string; body: string } | null>(null);
+
+  const handleEnablePush = async () => {
+    if (!user) return;
+    setPushBusy(true);
+    setPushError(null);
+    const result = await enableAdminPushNotifications(user.id || user.email || user.name || 'admin');
+    setPushBusy(false);
+    if (result.status === 'granted') {
+      setPushStatus('granted');
+    } else if (result.status === 'denied') {
+      setPushStatus('denied');
+      setPushError('Notifications were blocked. Enable them in your browser settings.');
+    } else if (result.status === 'unsupported') {
+      setPushStatus('unsupported');
+      setPushError('Push notifications are not supported on this device.');
+    } else if (result.status === 'error') {
+      setPushError(result.error);
+    }
+  };
+
+  useEffect(() => {
+    let unsub: (() => void) | undefined;
+    onForegroundPush((title, body) => {
+      setPushToast({ title, body });
+      window.setTimeout(() => setPushToast(null), 6000);
+    }).then((u) => { unsub = u; });
+    return () => { if (unsub) unsub(); };
+  }, []);
 
   useEffect(() => {
     dashboardApi.get(user?.name || 'Curator')
@@ -240,6 +277,59 @@ export const Dashboard: React.FC = () => {
         <p className="text-primary-navy/60 font-medium text-sm">{t('dashboard.greeting')}, {data.userName}</p>
         <h2 className="text-3xl font-bold text-primary-navy">{t('dashboard.eveningOverview')}</h2>
       </motion.section>
+
+      {pushStatus !== 'granted' && pushStatus !== 'unsupported' && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-primary-navy text-white rounded-2xl p-5 flex items-center gap-4 shadow-lg"
+        >
+          <div className="w-10 h-10 rounded-full bg-secondary-gold/20 flex items-center justify-center flex-shrink-0">
+            <Bell size={18} className="text-secondary-gold" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-bold text-sm">Get instant booking alerts</p>
+            <p className="text-[11px] text-white/60 font-medium">
+              {pushError ? pushError : 'Allow notifications so new bookings ping your phone even when the app is closed.'}
+            </p>
+          </div>
+          <button
+            onClick={handleEnablePush}
+            disabled={pushBusy || pushStatus === 'denied'}
+            className="bg-secondary-gold text-primary-navy px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest active:scale-95 transition-all disabled:opacity-50 flex-shrink-0"
+          >
+            {pushBusy ? '…' : pushStatus === 'denied' ? 'Blocked' : 'Enable'}
+          </button>
+        </motion.div>
+      )}
+
+      {pushStatus === 'granted' && (
+        <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-emerald-600">
+          <Bell size={12} /> Push alerts on
+        </div>
+      )}
+
+      <AnimatePresence>
+        {pushToast && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="fixed top-4 end-4 z-50 bg-primary-navy text-white rounded-2xl p-4 shadow-2xl max-w-xs flex items-start gap-3"
+          >
+            <div className="w-9 h-9 rounded-full bg-secondary-gold/20 flex items-center justify-center flex-shrink-0">
+              <BellOff size={16} className="text-secondary-gold" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-bold text-sm">{pushToast.title}</p>
+              <p className="text-[11px] text-white/70 font-medium">{pushToast.body}</p>
+            </div>
+            <button onClick={() => setPushToast(null)} className="text-white/40 hover:text-white">
+              <X size={14} />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <motion.div
