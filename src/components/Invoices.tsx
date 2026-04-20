@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { FileText, Receipt, Download, MessageCircle, X, Calendar, Building2, Edit3, Paperclip } from 'lucide-react';
+import { FileText, Receipt, Download, MessageCircle, X, Calendar, Building2, Edit3, Paperclip, IdCard } from 'lucide-react';
 import { cn } from '@/src/lib/utils';
 import { collection, query, orderBy, onSnapshot, doc, getDoc, setDoc, limit } from 'firebase/firestore';
 import { db } from '../services/firebase';
@@ -29,6 +29,7 @@ interface RealtimeBooking {
   payment_status: string;
   payment_method: string;
   receiptURL: string;
+  idImageUrl?: string;
   slot_name?: string;
   created_at: string;
 }
@@ -53,7 +54,7 @@ export const Invoices: React.FC = () => {
   const [licenseNumber, setLicenseNumber] = useState('');
   const [showTemplateEditor, setShowTemplateEditor] = useState(false);
   const [templateSaving, setTemplateSaving] = useState(false);
-  const [receiptViewURL, setReceiptViewURL] = useState<string | null>(null);
+  const [viewer, setViewer] = useState<{ url: string; kind: 'receipt' | 'id' } | null>(null);
 
   // Pagination
   const PAGE_SIZE = 20;
@@ -319,11 +320,21 @@ export const Invoices: React.FC = () => {
                       {b.receiptURL && (
                         <button
                           type="button"
-                          onClick={(e) => { e.stopPropagation(); setReceiptViewURL(b.receiptURL); }}
+                          onClick={(e) => { e.stopPropagation(); setViewer({ url: b.receiptURL, kind: 'receipt' }); }}
                           title="View attached receipt"
                           className="p-1 rounded-md text-secondary-gold hover:bg-secondary-gold/10 active:scale-90 transition-all"
                         >
                           <Paperclip size={12} />
+                        </button>
+                      )}
+                      {b.idImageUrl && (
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); setViewer({ url: b.idImageUrl!, kind: 'id' }); }}
+                          title="View guest ID"
+                          className="p-1 rounded-md text-secondary-gold hover:bg-secondary-gold/10 active:scale-90 transition-all"
+                        >
+                          <IdCard size={12} />
                         </button>
                       )}
                     </div>
@@ -453,15 +464,15 @@ export const Invoices: React.FC = () => {
         </div>
       </section>
 
-      {/* Receipt Viewer Modal */}
+      {/* Receipt / ID Viewer Modal */}
       <AnimatePresence>
-        {receiptViewURL && (
+        {viewer && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-            onClick={() => setReceiptViewURL(null)}
+            onClick={() => setViewer(null)}
           >
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
@@ -472,30 +483,34 @@ export const Invoices: React.FC = () => {
             >
               <div className="flex items-center justify-between p-5 border-b border-primary-navy/5">
                 <div className="flex items-center gap-2">
-                  <Paperclip size={16} className="text-secondary-gold" />
-                  <h3 className="font-headline font-bold text-primary-navy">Payment Receipt</h3>
+                  {viewer.kind === 'id'
+                    ? <IdCard size={16} className="text-secondary-gold" />
+                    : <Paperclip size={16} className="text-secondary-gold" />}
+                  <h3 className="font-headline font-bold text-primary-navy">
+                    {viewer.kind === 'id' ? 'Guest ID' : 'Payment Receipt'}
+                  </h3>
                 </div>
                 <div className="flex items-center gap-2">
                   <a
-                    href={receiptViewURL}
+                    href={viewer.url}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="px-3 py-1.5 rounded-lg bg-primary-navy/5 text-primary-navy text-[10px] font-bold uppercase tracking-widest hover:bg-primary-navy/10 transition-all"
                   >
                     Open Full Size
                   </a>
-                  <button onClick={() => setReceiptViewURL(null)} className="p-2 hover:bg-primary-navy/5 rounded-full">
+                  <button onClick={() => setViewer(null)} className="p-2 hover:bg-primary-navy/5 rounded-full">
                     <X size={18} className="text-primary-navy/40" />
                   </button>
                 </div>
               </div>
               <div className="flex-1 overflow-auto p-4 flex items-center justify-center bg-surface-container-low">
-                {receiptViewURL.toLowerCase().endsWith('.pdf') ? (
-                  <iframe src={receiptViewURL} className="w-full h-[60vh] rounded-lg border-0" title="Receipt PDF" />
+                {viewer.url.toLowerCase().endsWith('.pdf') ? (
+                  <iframe src={viewer.url} className="w-full h-[60vh] rounded-lg border-0" title={viewer.kind === 'id' ? 'Guest ID PDF' : 'Receipt PDF'} />
                 ) : (
                   <img
-                    src={receiptViewURL}
-                    alt="Payment Receipt"
+                    src={viewer.url}
+                    alt={viewer.kind === 'id' ? 'Guest ID' : 'Payment Receipt'}
                     className="max-w-full max-h-[60vh] object-contain rounded-lg shadow-sm"
                     referrerPolicy="no-referrer"
                   />
