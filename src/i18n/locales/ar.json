@@ -143,6 +143,7 @@
   "booking": {
     "bookYourStay": "احجز إقامتك",
     "selectDates": "اختر التواريخ",
+    "selectDatesDesc": "اختر التواريخ المفضلة لديك وقم بتزويدنا بالتفاصيل لإتمام حجزك في {{name}}.",
     "tapOnce": "انقر على تاريخ للبدء، انقر على نفس التاريخ لحجز جزئي (بدون مبيت)، أو انقر على تاريخ آخر للإقامة الليلية.",
     "maintenanceMode": "قيد الصيانة حالياً",
     "maintenanceDesc": "لا نقبل حجوزات جديدة في الوقت الحالي. يرجى المحاولة لاحقاً.",
@@ -194,7 +195,20 @@
     "daysThu": "خمي",
     "daysFri": "جمع",
     "daysSat": "سبت",
-    "tapAgainDayUse": "انقر مرة أخرى لحجز جزئي، أو اختر تاريخ المغادرة"
+    "tapAgainDayUse": "انقر مرة أخرى لحجز جزئي، أو اختر تاريخ المغادرة",
+    "civilIdPassport": "بطاقة الهوية / الجواز",
+    "uploadCivilIdPassport": "ارفع صورة بطاقة الهوية / الجواز",
+    "idRequiredHint": "مطلوب — صورة واضحة (JPG / PNG / PDF)",
+    "bookingConfirmedOnApproval": "سيتم تأكيد حجزك بمجرد موافقة الإدارة على التحويل البنكي.",
+    "bankTransferDetails": "تفاصيل التحويل البنكي",
+    "bankLabel": "البنك:",
+    "accountLabel": "الحساب:",
+    "ibanLabel": "الآيبان:",
+    "mobileTransferLabel": "تحويل الهاتف (واتساب / تطبيق البنك):",
+    "referenceLabel": "المرجع:",
+    "referencePhoneNumber": "رقم هاتفك",
+    "receiptUploaded": "تم رفع الإيصال",
+    "uploadReceiptForApproval": "ارفع الإيصال للموافقة"
   },
   "sanctuary": {
     "estatePreview": "معاينة العقار",
@@ -205,7 +219,8 @@
     "aboutUs": "عن شاليه الملاك",
     "footerDesc": "شاليهات فاخرة مصممة للمسافر العصري في قلب المشهد الصحراوي العُماني.",
     "bookNow": "احجز الآن",
-    "leaveReview": "أضف تقييمك"
+    "leaveReview": "أضف تقييمك",
+    "tourismLicense": "رقم ترخيص السياحة"
   },
   "login": {
     "signIn": "تسجيل الدخول",
@@ -233,7 +248,8 @@
     "reviewSubmitted": "تم إرسال تقييمك. نقدّر ملاحظاتك!",
     "backToReviews": "العودة للتقييمات",
     "noReviews": "لا توجد تقييمات بعد. كن أول من يشارك تجربته!",
-    "tapToRate": "انقر للتقييم"
+    "tapToRate": "انقر للتقييم",
+    "feedbackHelps": "تقييمك يساعدنا في تحسين وتطوير تجربة الإقامة في {{name}}."
   },
   "confirmation": {
     "bookingConfirmed": "تم تأكيد الحجز!",

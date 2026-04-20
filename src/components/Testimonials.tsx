@@ -83,7 +83,7 @@ export const Testimonials: React.FC = () => {
         <span className="text-secondary-gold font-bold tracking-widest text-[10px] uppercase">{t('testimonials.guestReviews')}</span>
         <h2 className="font-headline text-4xl font-bold text-primary-navy">{t('testimonials.shareExperience')}</h2>
         <p className="text-primary-navy/60 text-sm max-w-xs mx-auto">
-          Your feedback helps us craft the perfect retreat experience at Al Malak Chalet.
+          {t('testimonials.feedbackHelps', { name: t('common.alMalak') })}
         </p>
       </section>
 

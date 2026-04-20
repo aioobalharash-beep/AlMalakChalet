@@ -143,6 +143,7 @@
   "booking": {
     "bookYourStay": "Book Your Stay",
     "selectDates": "Select your dates",
+    "selectDatesDesc": "Select your preferred dates and provide your details to finalize your experience at {{name}}.",
     "tapOnce": "Tap a date once to start, tap the same date again for Day Use, or tap a different date for overnight.",
     "maintenanceMode": "Currently Under Maintenance",
     "maintenanceDesc": "We are not accepting new bookings at the moment. Please check back soon.",
@@ -194,7 +195,20 @@
     "daysThu": "Thu",
     "daysFri": "Fri",
     "daysSat": "Sat",
-    "tapAgainDayUse": "Tap again for Day Use, or select check-out date"
+    "tapAgainDayUse": "Tap again for Day Use, or select check-out date",
+    "civilIdPassport": "Civil ID / Passport",
+    "uploadCivilIdPassport": "Upload Civil ID / Passport",
+    "idRequiredHint": "Required — clear photo (JPG / PNG / PDF)",
+    "bookingConfirmedOnApproval": "Your booking will be confirmed once the admin approves your transfer",
+    "bankTransferDetails": "Bank Transfer Details",
+    "bankLabel": "Bank:",
+    "accountLabel": "Account:",
+    "ibanLabel": "IBAN:",
+    "mobileTransferLabel": "Mobile Transfer (WhatsApp/Bank App):",
+    "referenceLabel": "Reference:",
+    "referencePhoneNumber": "Your phone number",
+    "receiptUploaded": "Receipt uploaded",
+    "uploadReceiptForApproval": "Upload receipt for approval"
   },
   "sanctuary": {
     "estatePreview": "Estate Preview",
@@ -205,7 +219,8 @@
     "aboutUs": "About Us",
     "footerDesc": "Exceptional luxury chalets curated for the modern traveler in the heart of Oman's desert landscape.",
     "bookNow": "Book Now",
-    "leaveReview": "Leave a Review"
+    "leaveReview": "Leave a Review",
+    "tourismLicense": "Tourism License"
   },
   "login": {
     "signIn": "Sign In",
@@ -233,7 +248,8 @@
     "reviewSubmitted": "Your review has been submitted. We appreciate your feedback!",
     "backToReviews": "Back to Reviews",
     "noReviews": "No reviews yet. Be the first to share your experience!",
-    "tapToRate": "Tap to rate"
+    "tapToRate": "Tap to rate",
+    "feedbackHelps": "Your feedback helps us craft the perfect retreat experience at {{name}}."
   },
   "confirmation": {
     "bookingConfirmed": "Booking Confirmed!",
