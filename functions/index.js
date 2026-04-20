@@ -30,8 +30,8 @@ exports.notifyAdminsOnNewBooking = onDocumentCreated(
     const totalAmount =
       booking.grandTotal ?? booking.total_amount ?? booking.total ?? 0;
 
-    const title = '🛎️ New Booking!';
-    const body = `${guestName} just booked for ${totalAmount} OMR. Click to view.`;
+    const title = '🛎️ حجز جديد! (New Booking!)';
+    const body = `${guestName} has booked for ${totalAmount} OMR.`;
 
     const tokensSnap = await getFirestore().collection('admin_tokens').get();
     if (tokensSnap.empty) {

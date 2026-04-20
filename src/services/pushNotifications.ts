@@ -3,7 +3,21 @@ import { doc, setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import app, { db } from './firebase';
 
 const ADMIN_TOKENS_COLLECTION = 'admin_tokens';
-const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY as string | undefined;
+
+// VAPID public key is safe to ship in the bundle — it's the public half of the
+// Web Push certificate pair. The private half stays in Firebase.
+const VAPID_KEY =
+  (import.meta.env.VITE_FIREBASE_VAPID_KEY as string | undefined) ||
+  'BErsSKwySJ84fE7jBwq1BoZvkowA7qb-8TFaP1V1PQfOTlyWgbeDdvMZTJltugbZ2ij40Z4l7_PKRHsuGlaw5-O';
+
+const FIREBASE_CONFIG_QS = new URLSearchParams({
+  apiKey: (import.meta.env.VITE_FIREBASE_API_KEY as string) || '',
+  authDomain: (import.meta.env.VITE_FIREBASE_AUTH_DOMAIN as string) || '',
+  projectId: (import.meta.env.VITE_FIREBASE_PROJECT_ID as string) || '',
+  storageBucket: (import.meta.env.VITE_FIREBASE_STORAGE_BUCKET as string) || '',
+  messagingSenderId: (import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID as string) || '',
+  appId: (import.meta.env.VITE_FIREBASE_APP_ID as string) || '',
+}).toString();
 
 let messagingInstance: Messaging | null = null;
 
@@ -16,7 +30,12 @@ async function getMessagingInstance(): Promise<Messaging | null> {
 
 async function registerFcmServiceWorker(): Promise<ServiceWorkerRegistration | null> {
   if (!('serviceWorker' in navigator)) return null;
-  return navigator.serviceWorker.register('/firebase-messaging-sw.js', { scope: '/' });
+  // Pass the Firebase web config as query params so the SW can initialize
+  // without a hardcoded copy of the config (see firebase-messaging-sw.js).
+  return navigator.serviceWorker.register(
+    `/firebase-messaging-sw.js?${FIREBASE_CONFIG_QS}`,
+    { scope: '/' }
+  );
 }
 
 export type PushPermissionResult =
@@ -73,6 +92,32 @@ export async function disableAdminPushNotifications(token: string): Promise<void
     await deleteDoc(doc(db, ADMIN_TOKENS_COLLECTION, token));
   } catch {
     // non-fatal
+  }
+}
+
+/**
+ * Fire-and-forget trigger the booking flow can call right after a booking is
+ * written. Posts to the server's /api/notifications/new-booking route, which
+ * holds the FCM admin credentials. Never swallows booking confirmation — any
+ * push failure is logged but does not throw.
+ *
+ * If you're using the Firestore-trigger Cloud Function instead, you don't need
+ * to call this: writing to bookings/{id} already fires the function.
+ */
+export function notifyAdminsOfNewBooking(params: {
+  bookingId: string;
+  guest_name: string;
+  total_amount: number | string;
+}): void {
+  try {
+    fetch('/api/notifications/new-booking', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params),
+      keepalive: true,
+    }).catch((err) => console.warn('Push notification request failed:', err));
+  } catch (err) {
+    console.warn('Push notification dispatch skipped:', err);
   }
 }
 

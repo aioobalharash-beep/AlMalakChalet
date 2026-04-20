@@ -7,28 +7,35 @@
 importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js');
 
-// NOTE: public Firebase web config — safe to commit.
-// Must mirror the values in .env used by the client.
+// The client registers this SW with the public Firebase web config embedded as
+// query params (see pushNotifications.ts → registerFcmServiceWorker). That way
+// the same VITE_FIREBASE_* values the SPA uses also flow into the worker
+// without any copy-paste step.
+const swParams = new URL(self.location.href).searchParams;
+
 firebase.initializeApp({
-  apiKey: 'REPLACE_WITH_VITE_FIREBASE_API_KEY',
-  authDomain: 'REPLACE_WITH_VITE_FIREBASE_AUTH_DOMAIN',
-  projectId: 'REPLACE_WITH_VITE_FIREBASE_PROJECT_ID',
-  storageBucket: 'REPLACE_WITH_VITE_FIREBASE_STORAGE_BUCKET',
-  messagingSenderId: 'REPLACE_WITH_VITE_FIREBASE_MESSAGING_SENDER_ID',
-  appId: 'REPLACE_WITH_VITE_FIREBASE_APP_ID',
+  apiKey: swParams.get('apiKey') || '',
+  authDomain: swParams.get('authDomain') || '',
+  projectId: swParams.get('projectId') || '',
+  storageBucket: swParams.get('storageBucket') || '',
+  messagingSenderId: swParams.get('messagingSenderId') || '',
+  appId: swParams.get('appId') || '',
 });
 
 const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage((payload) => {
   const data = payload.data || {};
-  const title = (payload.notification && payload.notification.title) || data.title || '🛎️ New Booking!';
+  const title =
+    (payload.notification && payload.notification.title) ||
+    data.title ||
+    '🛎️ حجز جديد! (New Booking!)';
   const body =
     (payload.notification && payload.notification.body) ||
     data.body ||
     (data.guest_name && data.total_amount
-      ? `${data.guest_name} just booked for ${data.total_amount} OMR. Click to view.`
-      : 'A new booking just arrived. Click to view.');
+      ? `${data.guest_name} has booked for ${data.total_amount} OMR.`
+      : 'A new booking just arrived.');
 
   self.registration.showNotification(title, {
     body,

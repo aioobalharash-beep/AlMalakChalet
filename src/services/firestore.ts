@@ -17,6 +17,7 @@ import {
 } from 'firebase/auth';
 import { db, auth } from './firebase';
 import { CLIENT_CONFIG } from '../config/clientConfig';
+import { notifyAdminsOfNewBooking } from './pushNotifications';
 
 // ── Collection refs ──
 
@@ -377,6 +378,16 @@ export const firestoreBookings = {
       booking_id: docRef.id,
       read: false,
       created_at: new Date().toISOString(),
+    });
+
+    // Push fan-out to admin devices. Fire-and-forget — booking confirmation
+    // must never block on notification delivery. Safe no-op if the server
+    // endpoint is not deployed; the Cloud Function on bookings/{id} also
+    // covers this path independently.
+    notifyAdminsOfNewBooking({
+      bookingId: docRef.id,
+      guest_name: data.guest_name,
+      total_amount: grandTotal,
     });
 
     return { ...booking, id: docRef.id };
