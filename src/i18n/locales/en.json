@@ -273,7 +273,8 @@
     "viewInvoice": "View Invoice",
     "bankTransferPending": "Your tax invoice will be generated once our team approves your bank transfer.",
     "mobileTransfer": "Mobile Transfer (WhatsApp/Bank App):",
-    "getLocationPin": "Get Location Pin"
+    "getLocationPin": "Get Location Pin",
+    "getLocation": "Get Location"
   },
   "invoices": {
     "invoiceCenter": "Invoice Centre",

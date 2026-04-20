@@ -188,6 +188,20 @@ export const Confirmation: React.FC = () => {
           </p>
         </motion.div>
 
+        {/* Get Location — primary action below summary */}
+        <motion.a
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.35 }}
+          href="https://maps.app.goo.gl/HHD7qjVXwmVZ9KjeA"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="w-full bg-secondary-gold text-primary-navy py-4 rounded-[20px] font-bold text-sm uppercase tracking-widest flex items-center justify-center gap-2.5 active:scale-[0.98] transition-all shadow-lg shadow-secondary-gold/20"
+        >
+          <MapPin size={18} />
+          {t('confirmation.getLocation')}
+        </motion.a>
+
         {/* Conditional Invoice / Bank Transfer Note */}
         <motion.div
           initial={{ opacity: 0 }}

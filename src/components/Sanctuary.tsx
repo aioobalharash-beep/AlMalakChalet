@@ -160,21 +160,29 @@ const Footer = React.memo<FooterProps>(({ chaletName, footerText, whatsappNumber
         <button onClick={onTerms} className="text-xs text-primary-navy/60 underline font-bold">{termsLabel}</button>
         <button onClick={onAbout} className="text-xs text-primary-navy/60 underline font-bold">{aboutLabel}</button>
       </div>
-      <div className="flex gap-8 mt-2">
+      <div className="flex gap-6 mt-2 items-center">
+        {waHref && (
+          <a
+            href={waHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="WhatsApp"
+            className="flex items-center gap-2 text-primary-navy/60 hover:text-secondary-gold transition-colors"
+          >
+            <MessageCircle size={20} />
+            <span className="text-xs font-bold">WhatsApp</span>
+          </a>
+        )}
         <a
           href="https://www.instagram.com/almalak_chalet/"
           target="_blank"
           rel="noopener noreferrer"
           aria-label="Instagram"
-          className="text-primary-navy/40 hover:text-secondary-gold transition-colors"
+          className="flex items-center gap-2 text-primary-navy/60 hover:text-secondary-gold transition-colors"
         >
           <Instagram size={20} />
+          <span className="text-xs font-bold">Instagram</span>
         </a>
-        {waHref && (
-          <a href={waHref} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp" className="text-primary-navy/40 hover:text-secondary-gold transition-colors">
-            <MessageCircle size={20} />
-          </a>
-        )}
       </div>
       {footerText && (
         <p className="text-[10px] text-center text-primary-navy/40 font-bold">

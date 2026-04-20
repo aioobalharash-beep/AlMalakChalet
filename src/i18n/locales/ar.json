@@ -156,7 +156,7 @@
     "phone": "الهاتف",
     "emailOptional": "البريد الإلكتروني (اختياري)",
     "stayType": "نوع الحجز",
-    "stayTypeDayUse": "حجز يومي",
+    "stayTypeDayUse": "نصف يوم",
     "stayTypeNightStay": "مبيت",
     "stayTypeEvent": "مناسبة",
     "pricePerNight": "{{amount}} ر.ع / ليلة",
@@ -273,7 +273,8 @@
     "viewInvoice": "عرض الفاتورة",
     "bankTransferPending": "سيتم إصدار فاتورتك الضريبية بعد موافقة فريقنا على التحويل البنكي.",
     "mobileTransfer": "تحويل عبر الجوال (واتساب/تطبيق البنك):",
-    "getLocationPin": "الحصول على الموقع"
+    "getLocationPin": "الحصول على الموقع",
+    "getLocation": "احصل على الموقع"
   },
   "invoices": {
     "invoiceCenter": "مركز الفواتير",
