@@ -9,6 +9,16 @@ import { useTranslation } from 'react-i18next';
 import { bl, type BilingualField } from '../utils/bilingual';
 import { getClientConfig, whatsappHref } from '../config/clientConfig';
 
+interface DayUseSlotRates {
+  sunday_rate?: number;
+  monday_rate?: number;
+  tuesday_rate?: number;
+  wednesday_rate?: number;
+  thursday_rate?: number;
+  friday_rate?: number;
+  saturday_rate?: number;
+}
+
 interface PricingSettings {
   sunday_rate?: number;
   monday_rate?: number;
@@ -19,9 +29,44 @@ interface PricingSettings {
   saturday_rate?: number;
   day_use_rate?: number;
   weekday_rate?: number;
+  event_rate?: number;
+  day_use_slots?: DayUseSlotRates[];
   special_dates?: { date: string; price: number }[];
   discount?: { enabled: boolean; type: 'percent' | 'flat'; value: number; start_date: string; end_date: string };
 }
+
+const getMinPrice = (pricing: PricingSettings | undefined, fallback: number): number => {
+  if (!pricing) return fallback;
+  const nightRates = [
+    pricing.sunday_rate, pricing.monday_rate, pricing.tuesday_rate,
+    pricing.wednesday_rate, pricing.thursday_rate, pricing.friday_rate,
+    pricing.saturday_rate,
+    pricing.weekday_rate, // legacy
+  ];
+  const slotRates = (pricing.day_use_slots || []).flatMap(slot => [
+    slot.sunday_rate, slot.monday_rate, slot.tuesday_rate,
+    slot.wednesday_rate, slot.thursday_rate, slot.friday_rate, slot.saturday_rate,
+  ]);
+  const specialPrices = (pricing.special_dates || []).map(s => s.price);
+  const allRates = [
+    ...nightRates,
+    pricing.day_use_rate,
+    ...slotRates,
+    pricing.event_rate,
+    ...specialPrices,
+  ].filter((r): r is number => typeof r === 'number' && r > 0);
+
+  if (allRates.length === 0) return fallback;
+  let minRate = Math.min(...allRates);
+  if (pricing.discount?.enabled && pricing.discount.value > 0) {
+    if (pricing.discount.type === 'percent') {
+      minRate = Math.round(minRate * (1 - pricing.discount.value / 100));
+    } else {
+      minRate = Math.max(0, minRate - pricing.discount.value);
+    }
+  }
+  return minRate;
+};
 
 interface PropertyDetails {
   name: string | BilingualField;
@@ -269,28 +314,7 @@ export const Sanctuary: React.FC = () => {
         <h3 className="font-headline text-xl font-bold mb-4">{bl(data.headline, lang)}</h3>
         <p className="text-primary-navy/60 leading-relaxed text-sm">{bl(data.description, lang)}</p>
         <div className="mt-4 text-sm text-primary-navy/60">
-          <span className="font-bold text-secondary-gold">{t('sanctuary.from')} {(() => {
-            const p = data.pricing;
-            if (!p) return data.nightly_rate;
-            const dayRates = [
-              p.sunday_rate, p.monday_rate, p.tuesday_rate, p.wednesday_rate,
-              p.thursday_rate, p.friday_rate, p.saturday_rate, p.day_use_rate,
-              // Legacy fallback
-              p.weekday_rate,
-            ];
-            const specialPrices = (p.special_dates || []).map(s => s.price);
-            const allRates = [...dayRates, ...specialPrices].filter((r): r is number => typeof r === 'number' && r > 0);
-            if (allRates.length === 0) return data.nightly_rate;
-            let minRate = Math.min(...allRates);
-            if (p.discount?.enabled && p.discount.value > 0) {
-              if (p.discount.type === 'percent') {
-                minRate = Math.round(minRate * (1 - p.discount.value / 100));
-              } else {
-                minRate = Math.max(0, minRate - p.discount.value);
-              }
-            }
-            return minRate;
-          })()} {t('common.omr')}</span> {t('common.perNight')}
+          <span className="font-bold text-secondary-gold">{t('sanctuary.from')} {getMinPrice(data.pricing, data.nightly_rate)} {t('common.omr')}</span> {t('common.perNight')}
         </div>
         {data.features.length > 0 && (
           <div className="mt-8 grid grid-cols-2 gap-y-4">
