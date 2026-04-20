@@ -22,6 +22,37 @@ type Body = {
 };
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // GET = health check. Returns whether the env var is set, whether
+  // firebase-admin initialized, and how many admin_tokens exist — so the
+  // dashboard can surface the failure reason without needing server logs.
+  if (req.method === 'GET') {
+    const envVarSet = !!process.env.FIREBASE_SERVICE_ACCOUNT;
+    let adminSdkReady = false;
+    let tokenCount: number | null = null;
+    let projectId: string | null = null;
+    let error: string | null = null;
+
+    try {
+      ensureAdminInitialized();
+      adminSdkReady = true;
+      const apps = getApps();
+      projectId = apps[0]?.options?.projectId || null;
+      const snap = await getFirestore().collection('admin_tokens').get();
+      tokenCount = snap.size;
+    } catch (err) {
+      error = err instanceof Error ? err.message : String(err);
+    }
+
+    res.status(200).json({
+      envVarSet,
+      adminSdkReady,
+      projectId,
+      tokenCount,
+      error,
+    });
+    return;
+  }
+
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Method not allowed' });
     return;
