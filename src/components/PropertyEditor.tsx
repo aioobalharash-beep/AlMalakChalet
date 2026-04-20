@@ -843,8 +843,29 @@ const PropertyEditorComponent: React.FC = () => {
             className="w-36 bg-pearl-white border border-primary-navy/10 rounded-xl py-2.5 px-3 text-xs font-bold focus:ring-1 focus:ring-secondary-gold/50 outline-none"
           >
             <option value="">Icon (Star)</option>
-            {['Users', 'Ruler', 'Bed', 'Bath', 'Car', 'Wifi', 'Wind', 'Flame', 'Waves', 'TreePalm', 'Shield', 'Star', 'Coffee', 'Utensils', 'Tv', 'Dumbbell', 'Baby'].map(ic => (
-              <option key={ic} value={ic}>{ic}</option>
+            {[
+              { key: 'Users', label: 'Users' },
+              { key: 'Ruler', label: 'Ruler' },
+              { key: 'Bed', label: 'Bed' },
+              { key: 'Bath', label: 'Bath' },
+              { key: 'Car', label: 'Car' },
+              { key: 'Wifi', label: 'Wifi' },
+              { key: 'Wind', label: 'Wind' },
+              { key: 'Flame', label: 'Flame' },
+              { key: 'Waves', label: 'Waves' },
+              { key: 'TreePalm', label: 'TreePalm' },
+              { key: 'Shield', label: 'Shield' },
+              { key: 'Star', label: 'Star' },
+              { key: 'Coffee', label: 'Coffee' },
+              { key: 'Utensils', label: 'Utensils' },
+              { key: 'Tv', label: 'Tv' },
+              { key: 'Dumbbell', label: 'Dumbbell' },
+              { key: 'Baby', label: 'Baby' },
+              { key: 'BBQ', label: 'BBQ' },
+              { key: 'Pool', label: 'Pool' },
+              { key: 'GardenLounge', label: 'Garden Lounge' },
+            ].map(ic => (
+              <option key={ic.key} value={ic.key}>{ic.label}</option>
             ))}
           </select>
           <input type="text" value={newFactLabel} onChange={(e) => setNewFactLabel(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addQuickFact()} placeholder="Label (English)" className="flex-1 bg-pearl-white border border-primary-navy/10 rounded-xl py-2.5 px-4 text-xs placeholder:text-primary-navy/25 focus:ring-1 focus:ring-secondary-gold/50 outline-none" />

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { Users, Ruler, CheckCircle2, Calendar as CalendarIcon, Instagram, MessageCircle, Bed, Bath, Car, Wifi, Wind, Flame, Waves, TreePalm, Shield, Star, Coffee, Utensils, Tv, Dumbbell, Baby } from 'lucide-react';
+import { Users, Ruler, CheckCircle2, Calendar as CalendarIcon, Instagram, MessageCircle, Bed, Bath, Car, Wifi, Wind, Flame, Waves, TreePalm, Shield, Star, Coffee, Utensils, Tv, Dumbbell, Baby, Sofa } from 'lucide-react';
 import { OptimizedImage } from './OptimizedImage';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../services/firebase';
@@ -56,7 +56,10 @@ const DEFAULTS: PropertyDetails = {
 };
 
 const ICON_MAP: Record<string, React.ComponentType<any>> = {
-  Users, Ruler, Bed, Bath, Car, Wifi, Wind, Flame, Waves, TreePalm, Shield, Star, Coffee, Utensils, Tv, Dumbbell, Baby,
+  Users, Ruler, Bed, Bath, Car, Wifi, Wind, Flame, Waves, TreePalm, Shield, Star, Coffee, Utensils, Tv, Dumbbell, Baby, Sofa,
+  BBQ: Flame,
+  Pool: Waves,
+  GardenLounge: Sofa,
 };
 
 interface QuickFactCardProps {
