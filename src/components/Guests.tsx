@@ -448,12 +448,21 @@ export const Guests: React.FC = () => {
                   <span className="text-primary-navy/60">{guest.nights} {guest.nights > 1 ? t('common.nights') : t('common.night')}</span>
                 </div>
 
+                {/* Total Paid */}
+                <div className="flex items-center justify-between bg-surface-container-low rounded-lg px-4 py-2.5">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-primary-navy/50">{t('guests.totalPaid')}</span>
+                  <span className="text-xs font-bold text-primary-navy font-headline">{guest.total_amount} {t('common.omr')}</span>
+                </div>
+
                 {/* Deposit Badge */}
                 {guest.security_deposit > 0 && (
-                  <div className="flex items-center justify-between bg-surface-container-low rounded-lg px-4 py-2.5">
+                  <div className="flex items-center justify-between bg-amber-50/60 border border-amber-200/70 rounded-lg px-4 py-2.5">
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-primary-navy/50">{t('guests.deposit')}</span>
-                      <span className="text-xs font-bold text-primary-navy font-headline">{guest.security_deposit} {t('common.omr')}</span>
+                      <AlertCircle size={13} className="text-amber-600 flex-shrink-0" />
+                      <div className="flex flex-col">
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-amber-700">{t('guests.depositDueOnArrival')}</span>
+                        <span className="text-xs font-bold text-primary-navy font-headline">{guest.security_deposit} {t('common.omr')}</span>
+                      </div>
                     </div>
                     <button
                       onClick={async () => {
@@ -465,7 +474,7 @@ export const Guests: React.FC = () => {
                         "flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider transition-all active:scale-95",
                         guest.deposit_refunded
                           ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                          : "bg-amber-50 text-amber-700 border border-amber-200"
+                          : "bg-white text-amber-700 border border-amber-300"
                       )}
                     >
                       {guest.deposit_refunded ? (

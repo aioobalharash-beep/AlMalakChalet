@@ -169,9 +169,12 @@ export const Confirmation: React.FC = () => {
               <span className="font-bold text-primary-navy">{stayTotal} {t('common.omr')}</span>
             </div>
             {deposit > 0 && (
-              <div className="flex justify-between text-xs">
-                <span className="text-primary-navy/50">{t('confirmation.securityDeposit')}</span>
-                <span className="font-bold text-primary-navy">{deposit} {t('common.omr')}</span>
+              <div className="flex justify-between items-start text-xs">
+                <div>
+                  <span className="text-primary-navy/50">{t('confirmation.securityDeposit')}</span>
+                  <p className="text-[9px] font-bold uppercase tracking-widest text-primary-navy/40 mt-0.5">{t('booking.dueOnArrival')}</p>
+                </div>
+                <span className="font-bold text-primary-navy/40">{deposit} {t('common.omr')}</span>
               </div>
             )}
             <div className="flex justify-between text-sm pt-2 border-t border-primary-navy/5">

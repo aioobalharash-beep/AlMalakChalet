@@ -307,7 +307,8 @@ export const Booking: React.FC = () => {
 
   const stayTotal = priceBreakdown?.total || 0;
   const depositAmount = Number(securityDeposit) || 0;
-  const grandTotal = stayTotal + depositAmount;
+  // Deposit is collected at check-in, not upfront. Grand Total = stay only.
+  const grandTotal = stayTotal;
 
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -854,17 +855,19 @@ export const Booking: React.FC = () => {
               <span className="text-primary-navy/60 font-medium">{t('confirmation.stayTotal')}</span>
               <span className="font-bold text-primary-navy">{stayTotal} {t('common.omr')}</span>
             </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-primary-navy/60 font-medium">{t('booking.securityDeposit')}</span>
-              <span className="font-bold text-primary-navy">{depositAmount} {t('common.omr')}</span>
-            </div>
+            {depositAmount > 0 && (
+              <div className="flex justify-between items-start text-sm">
+                <div>
+                  <span className="text-primary-navy/60 font-medium">{t('booking.securityDeposit')}</span>
+                  <p className="text-[9px] font-bold uppercase tracking-widest text-primary-navy/40 mt-0.5">{t('booking.dueOnArrival')}</p>
+                </div>
+                <span className="font-bold text-primary-navy/40">{depositAmount} {t('common.omr')}</span>
+              </div>
+            )}
           </div>
 
           <div className="pt-4 border-t border-primary-navy/5 flex justify-between items-end">
-            <div>
-              <p className="text-xl font-bold font-headline">{t('booking.grandTotal')}</p>
-              <p className="text-[8px] font-bold uppercase tracking-widest text-primary-navy/40 mt-0.5">{t('booking.refundable')}</p>
-            </div>
+            <p className="text-xl font-bold font-headline">{t('booking.grandTotal')}</p>
             <div className="text-end">
               <p className="text-2xl font-bold text-secondary-gold font-headline">{grandTotal} {t('common.omr')}</p>
             </div>
@@ -1172,6 +1175,14 @@ export const Booking: React.FC = () => {
             </>
           )}
         </button>
+        {depositAmount > 0 && (
+          <div className="flex items-center justify-center gap-2 rounded-xl border border-secondary-gold/30 bg-secondary-gold/5 px-4 py-2.5">
+            <AlertCircle size={14} className="text-secondary-gold flex-shrink-0" />
+            <p className="text-xs font-medium text-primary-navy text-center leading-snug">
+              {t('booking.depositOnArrival', { amount: depositAmount })}
+            </p>
+          </div>
+        )}
         <div className="flex items-center justify-center gap-2 text-primary-navy/30">
           <ShieldCheck size={14} />
           <p className="text-[9px] font-bold text-center uppercase tracking-wider max-w-[200px]">
