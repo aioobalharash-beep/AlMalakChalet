@@ -32,6 +32,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     let projectId: string | null = null;
     let error: string | null = null;
 
+    let tokens: Array<{
+      tokenHash: string;
+      adminId: string | null;
+      userAgent: string | null;
+      createdAtMs: number | null;
+      lastSeenAtMs: number | null;
+    }> = [];
+
     try {
       ensureAdminInitialized();
       adminSdkReady = true;
@@ -39,6 +47,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       projectId = apps[0]?.options?.projectId || null;
       const snap = await getFirestore().collection('admin_tokens').get();
       tokenCount = snap.size;
+      tokens = snap.docs.map((d) => {
+        const data = d.data() as {
+          adminId?: string;
+          userAgent?: string;
+          createdAt?: FirebaseFirestore.Timestamp;
+          lastSeenAt?: FirebaseFirestore.Timestamp;
+        };
+        return {
+          tokenHash: `${d.id.slice(0, 6)}…${d.id.slice(-4)}`,
+          adminId: data.adminId || null,
+          userAgent: (data.userAgent || '').slice(0, 40) || null,
+          createdAtMs: data.createdAt?.toMillis?.() ?? null,
+          lastSeenAtMs: data.lastSeenAt?.toMillis?.() ?? null,
+        };
+      });
     } catch (err) {
       error = err instanceof Error ? err.message : String(err);
     }
@@ -48,6 +71,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       adminSdkReady,
       projectId,
       tokenCount,
+      tokens,
       error,
     });
     return;
