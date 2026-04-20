@@ -96,13 +96,11 @@ export async function disableAdminPushNotifications(token: string): Promise<void
 }
 
 /**
- * Fire-and-forget trigger the booking flow can call right after a booking is
- * written. Posts to the server's /api/notifications/new-booking route, which
- * holds the FCM admin credentials. Never swallows booking confirmation — any
- * push failure is logged but does not throw.
- *
- * If you're using the Firestore-trigger Cloud Function instead, you don't need
- * to call this: writing to bookings/{id} already fires the function.
+ * Fire-and-forget trigger the booking flow calls right after a booking is
+ * written. Posts to the Vercel serverless function /api/notify-admin, which
+ * holds the firebase-admin service-account credential (FIREBASE_SERVICE_ACCOUNT
+ * env var in Vercel). Never blocks booking confirmation — any push failure is
+ * logged but does not throw.
  */
 export function notifyAdminsOfNewBooking(params: {
   bookingId: string;
@@ -110,7 +108,7 @@ export function notifyAdminsOfNewBooking(params: {
   total_amount: number | string;
 }): void {
   try {
-    fetch('/api/notifications/new-booking', {
+    fetch('/api/notify-admin', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(params),
