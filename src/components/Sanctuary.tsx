@@ -135,6 +135,7 @@ interface FooterProps {
 }
 
 const Footer = React.memo<FooterProps>(({ chaletName, footerText, whatsappNumber, licenseNumber, termsLabel, aboutLabel, onTerms, onAbout }) => {
+  const { t } = useTranslation();
   const config = getClientConfig();
   const waHref = whatsappHref(config.social.whatsapp) || whatsappHref(whatsappNumber);
   const year = new Date().getFullYear();
@@ -152,7 +153,7 @@ const Footer = React.memo<FooterProps>(({ chaletName, footerText, whatsappNumber
       )}
       {licenseNumber && (
         <div className="text-[10px] text-primary-navy/30 uppercase font-bold tracking-widest text-center">
-          Tourism License: {licenseNumber}
+          {t('sanctuary.tourismLicense')}: {licenseNumber}
         </div>
       )}
       <div className="flex gap-6 items-center">

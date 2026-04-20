@@ -24,7 +24,7 @@ interface RealtimeBooking {
 }
 
 export const Reports: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [allBookings, setAllBookings] = useState<RealtimeBooking[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -106,7 +106,7 @@ export const Reports: React.FC = () => {
   };
 
   const formatDate = (d: string) =>
-    new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    new Date(d).toLocaleDateString(i18n.language === 'ar' ? 'ar-OM' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 
   if (loading) return <div className="p-8 animate-pulse"><div className="h-96 bg-primary-navy/5 rounded-xl" /></div>;
 
@@ -114,9 +114,9 @@ export const Reports: React.FC = () => {
     <div className="p-6 md:p-8 space-y-10 max-w-4xl mx-auto">
       {/* Page Header */}
       <div>
-        <span className="text-secondary-gold font-bold tracking-widest text-[10px] uppercase">Administration</span>
+        <span className="text-secondary-gold font-bold tracking-widest text-[10px] uppercase">{t('common.administration')}</span>
         <h1 className="font-headline text-2xl font-bold text-primary-navy mt-1">{t('reports.financialReports')}</h1>
-        <p className="text-primary-navy/50 text-xs font-medium mt-1">Generate custom reports for any date range</p>
+        <p className="text-primary-navy/50 text-xs font-medium mt-1">{t('reports.generateReportDesc')}</p>
       </div>
 
       {/* Date Range Picker */}
@@ -127,23 +127,25 @@ export const Reports: React.FC = () => {
       >
         <div className="flex items-center gap-2 mb-5">
           <CalendarIcon size={16} className="text-secondary-gold" />
-          <h3 className="text-sm font-bold text-primary-navy uppercase tracking-wide">Select Date Range</h3>
+          <h3 className="text-sm font-bold text-primary-navy uppercase tracking-wide">{t('reports.selectDateRange')}</h3>
         </div>
 
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="flex-1 space-y-1.5">
-            <label className="text-[10px] font-bold uppercase tracking-widest text-primary-navy/40">Start Date</label>
+            <label className="text-[10px] font-bold uppercase tracking-widest text-primary-navy/40">{t('reports.startDate')}</label>
             <input
               type="date"
+              lang={i18n.language}
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
               className="w-full bg-pearl-white border border-primary-navy/10 rounded-xl py-3 px-4 text-sm text-primary-navy font-medium focus:ring-1 focus:ring-secondary-gold/50 focus:border-secondary-gold/50 outline-none"
             />
           </div>
           <div className="flex-1 space-y-1.5">
-            <label className="text-[10px] font-bold uppercase tracking-widest text-primary-navy/40">End Date</label>
+            <label className="text-[10px] font-bold uppercase tracking-widest text-primary-navy/40">{t('reports.endDate')}</label>
             <input
               type="date"
+              lang={i18n.language}
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
               className="w-full bg-pearl-white border border-primary-navy/10 rounded-xl py-3 px-4 text-sm text-primary-navy font-medium focus:ring-1 focus:ring-secondary-gold/50 focus:border-secondary-gold/50 outline-none"
@@ -156,7 +158,7 @@ export const Reports: React.FC = () => {
               className="w-full sm:w-auto flex items-center justify-center gap-2 bg-primary-navy text-white px-8 py-3 rounded-xl font-bold text-xs uppercase tracking-widest active:scale-[0.98] transition-all disabled:opacity-30 disabled:cursor-not-allowed"
             >
               <Search size={14} />
-              Generate Report
+              {t('reports.generateReport')}
             </button>
           </div>
         </div>
@@ -198,7 +200,7 @@ export const Reports: React.FC = () => {
               className="bg-white p-6 rounded-[20px] border border-primary-navy/5 shadow-sm"
             >
               <Moon size={20} className="text-secondary-gold mb-3" />
-              <p className="text-primary-navy/40 text-[10px] font-bold uppercase tracking-widest">Average Stay</p>
+              <p className="text-primary-navy/40 text-[10px] font-bold uppercase tracking-widest">{t('reports.averageStay')}</p>
               <p className="font-headline text-2xl font-bold text-primary-navy mt-1">
                 {avgStay} <span className="text-sm font-normal text-primary-navy/40">{t('common.nights')}</span>
               </p>
@@ -215,8 +217,8 @@ export const Reports: React.FC = () => {
               <div className="w-16 h-16 bg-primary-navy/5 rounded-full flex items-center justify-center mx-auto mb-4">
                 <FileBarChart size={28} className="text-primary-navy/25" />
               </div>
-              <p className="font-bold text-primary-navy text-sm">No data available for this period</p>
-              <p className="text-primary-navy/40 text-xs mt-1">Try adjusting your date range to find confirmed bookings.</p>
+              <p className="font-bold text-primary-navy text-sm">{t('reports.noDataAvailable')}</p>
+              <p className="text-primary-navy/40 text-xs mt-1">{t('reports.noDataHint')}</p>
             </motion.div>
           ) : (
             <motion.section
@@ -226,9 +228,9 @@ export const Reports: React.FC = () => {
             >
               <div className="flex justify-between items-end px-1">
                 <div>
-                  <h3 className="font-headline text-lg text-primary-navy font-bold">Booking Details</h3>
+                  <h3 className="font-headline text-lg text-primary-navy font-bold">{t('reports.bookingDetails')}</h3>
                   <p className="text-primary-navy/50 text-xs font-medium">
-                    {formatDate(startDate)} — {formatDate(endDate)} &bull; {totalBookings} confirmed
+                    {formatDate(startDate)} — {formatDate(endDate)} &bull; {totalBookings} {t('reports.confirmed')}
                   </p>
                 </div>
                 <button
@@ -241,17 +243,17 @@ export const Reports: React.FC = () => {
                   ) : (
                     <Download size={14} />
                   )}
-                  {generating ? 'Generating...' : 'Download PDF Report'}
+                  {generating ? t('reports.generating') : t('reports.downloadPdfReport')}
                 </button>
               </div>
 
               <div className="bg-white rounded-[20px] border border-primary-navy/5 shadow-sm overflow-hidden">
                 {/* Table Header */}
                 <div className="hidden md:grid grid-cols-12 gap-4 px-6 py-3 bg-surface-container-low border-b border-primary-navy/5">
-                  <span className="col-span-4 text-[10px] font-bold uppercase tracking-widest text-primary-navy/40">Guest</span>
-                  <span className="col-span-3 text-[10px] font-bold uppercase tracking-widest text-primary-navy/40">Dates</span>
-                  <span className="col-span-2 text-[10px] font-bold uppercase tracking-widest text-primary-navy/40 text-center">Nights</span>
-                  <span className="col-span-3 text-[10px] font-bold uppercase tracking-widest text-primary-navy/40 text-end">Amount</span>
+                  <span className="col-span-4 text-[10px] font-bold uppercase tracking-widest text-primary-navy/40">{t('invoices.guest')}</span>
+                  <span className="col-span-3 text-[10px] font-bold uppercase tracking-widest text-primary-navy/40">{t('reports.datesCol')}</span>
+                  <span className="col-span-2 text-[10px] font-bold uppercase tracking-widest text-primary-navy/40 text-center">{t('reports.nightsCol')}</span>
+                  <span className="col-span-3 text-[10px] font-bold uppercase tracking-widest text-primary-navy/40 text-end">{t('common.amount')}</span>
                 </div>
 
                 {filteredBookings.map((b, i) => (
@@ -287,7 +289,7 @@ export const Reports: React.FC = () => {
                 {/* Table Footer Totals */}
                 <div className="px-6 py-4 bg-surface-container-low border-t border-primary-navy/10 md:grid md:grid-cols-12 md:gap-4 md:items-center flex justify-between">
                   <div className="col-span-4">
-                    <p className="text-xs font-bold text-primary-navy uppercase tracking-wider">Totals</p>
+                    <p className="text-xs font-bold text-primary-navy uppercase tracking-wider">{t('reports.totals')}</p>
                   </div>
                   <div className="col-span-3 hidden md:block" />
                   <div className="col-span-2 text-center">

@@ -522,7 +522,7 @@ export const Calendar: React.FC = () => {
                     "text-[9px] font-bold uppercase px-2 py-0.5 rounded-full",
                     arrival.status === 'confirmed' ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"
                   )}>
-                    {arrival.status}
+                    {arrival.status === 'confirmed' ? t('common.confirmed') : t('common.pending')}
                   </span>
                 </div>
                 <ChevronRightIcon size={16} className="text-primary-navy/20" />

@@ -587,7 +587,7 @@ export const Booking: React.FC = () => {
         <span className="text-secondary-gold font-bold tracking-widest text-[10px] uppercase">{t('booking.bookYourStay')}</span>
         <h2 className="font-headline text-4xl font-bold text-primary-navy">{t('booking.selectDates')}</h2>
         <p className="text-primary-navy/60 text-sm max-w-xs mx-auto">
-          Select your preferred dates and provide your details to finalize your experience at {property?.name || 'Al Malak Chalet'}.
+          {t('booking.selectDatesDesc', { name: property?.name || t('common.alMalak') })}
         </p>
       </section>
 
@@ -917,7 +917,7 @@ export const Booking: React.FC = () => {
 
         <div className="space-y-2">
           <label className="text-[10px] font-bold uppercase tracking-widest text-secondary-gold">
-            Civil ID / Passport *
+            {t('booking.civilIdPassport')} *
           </label>
           <label
             className={cn(
@@ -933,14 +933,14 @@ export const Booking: React.FC = () => {
               )}
               <div className="min-w-0">
                 <p className="text-sm font-bold text-primary-navy truncate">
-                  {idFileName || 'Upload Civil ID / Passport'}
+                  {idFileName || t('booking.uploadCivilIdPassport')}
                 </p>
                 <p className="text-[10px] text-primary-navy/50 font-medium">
                   {idUploading
                     ? `Uploading... ${idUploadProgress ?? 0}%`
                     : idImageUrl
                       ? 'Uploaded successfully'
-                      : 'Required — clear photo (JPG / PNG / PDF)'}
+                      : t('booking.idRequiredHint')}
                 </p>
               </div>
             </div>
@@ -1020,7 +1020,7 @@ export const Booking: React.FC = () => {
               )}
               <Building2 size={22} className={paymentMethod === 'bank_transfer' ? "text-primary-navy" : "text-primary-navy/40"} />
               <p className="text-sm font-bold text-primary-navy">{t('booking.bankTransfer')}</p>
-              <p className="text-[10px] text-primary-navy/50 font-medium">Upload receipt for approval</p>
+              <p className="text-[10px] text-primary-navy/50 font-medium">{t('booking.uploadReceiptForApproval')}</p>
             </button>
           </div>
 
@@ -1032,15 +1032,15 @@ export const Booking: React.FC = () => {
               className="space-y-4"
             >
               <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-2">
-                <p className="text-xs font-bold text-amber-800">Bank Transfer Details</p>
+                <p className="text-xs font-bold text-amber-800">{t('booking.bankTransferDetails')}</p>
                 <div className="text-xs text-amber-700 space-y-1">
-                  <p><span className="font-bold">Bank:</span> {bankDetails.bank_name}</p>
-                  <p><span className="font-bold">Account:</span> {bankDetails.account_name}</p>
-                  <p><span className="font-bold">IBAN:</span> {bankDetails.iban}</p>
+                  <p><span className="font-bold">{t('booking.bankLabel')}</span> {bankDetails.bank_name}</p>
+                  <p><span className="font-bold">{t('booking.accountLabel')}</span> {bankDetails.account_name}</p>
+                  <p><span className="font-bold">{t('booking.ibanLabel')}</span> {bankDetails.iban}</p>
                   {bankDetails.bankPhone.trim() && (
-                    <p><span className="font-bold">Mobile Transfer (WhatsApp/Bank App):</span> {bankDetails.bankPhone}</p>
+                    <p><span className="font-bold">{t('booking.mobileTransferLabel')}</span> {bankDetails.bankPhone}</p>
                   )}
-                  <p><span className="font-bold">Reference:</span> Your phone number</p>
+                  <p><span className="font-bold">{t('booking.referenceLabel')}</span> {t('booking.referencePhoneNumber')}</p>
                 </div>
               </div>
 
@@ -1057,7 +1057,7 @@ export const Booking: React.FC = () => {
                   {receiptFile ? (
                     <div className="text-center space-y-1">
                       <Check size={24} className="mx-auto text-emerald-600" />
-                      <p className="text-xs font-bold text-emerald-700">Receipt uploaded</p>
+                      <p className="text-xs font-bold text-emerald-700">{t('booking.receiptUploaded')}</p>
                       <p className="text-[10px] text-emerald-600">{receiptFileName}</p>
                     </div>
                   ) : (
@@ -1187,7 +1187,7 @@ export const Booking: React.FC = () => {
           <ShieldCheck size={14} />
           <p className="text-[9px] font-bold text-center uppercase tracking-wider max-w-[200px]">
             {paymentMethod === 'bank_transfer'
-              ? 'Your booking will be confirmed once the admin approves your transfer'
+              ? t('booking.bookingConfirmedOnApproval')
               : 'Your transaction is encrypted and secured by Thawani Gateway'}
           </p>
         </div>

@@ -149,10 +149,11 @@ export const Invoices: React.FC = () => {
   const getLastSixMonths = () => {
     const months: { label: string; month: number; year: number }[] = [];
     const now = new Date();
+    const locale = i18n.language === 'ar' ? 'ar-OM' : 'en-US';
     for (let i = 0; i < 6; i++) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       months.push({
-        label: d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+        label: d.toLocaleDateString(locale, { month: 'long', year: 'numeric' }),
         month: d.getMonth(),
         year: d.getFullYear(),
       });
@@ -229,7 +230,7 @@ export const Invoices: React.FC = () => {
     <div className="p-6 md:p-8 space-y-10 max-w-4xl mx-auto">
       {/* Page Header */}
       <div>
-        <span className="text-secondary-gold font-bold tracking-widest text-[10px] uppercase">Administration</span>
+        <span className="text-secondary-gold font-bold tracking-widest text-[10px] uppercase">{t('common.administration')}</span>
         <h1 className="font-headline text-2xl font-bold text-primary-navy mt-1">{t('invoices.invoiceCenter')}</h1>
         <p className="text-primary-navy/50 text-xs font-medium mt-1">{nonCancelledBookings.length} total invoices generated</p>
       </div>
@@ -282,18 +283,18 @@ export const Invoices: React.FC = () => {
       {/* SECTION 1: Latest Booking Invoices */}
       <section className="space-y-4">
         <div className="px-1">
-          <h3 className="font-headline text-lg text-primary-navy font-bold">Latest Booking Invoices</h3>
-          <p className="text-primary-navy/50 text-xs font-medium">Individual invoices from recent bookings</p>
+          <h3 className="font-headline text-lg text-primary-navy font-bold">{t('invoices.latestBookingInvoices')}</h3>
+          <p className="text-primary-navy/50 text-xs font-medium">{t('invoices.latestBookingInvoicesDesc')}</p>
         </div>
 
         <div className="bg-white rounded-[20px] border border-primary-navy/5 shadow-sm overflow-hidden">
           {/* Table Header */}
           <div className="hidden md:grid grid-cols-12 gap-4 px-6 py-3 bg-surface-container-low border-b border-primary-navy/5">
-            <span className="col-span-4 text-[10px] font-bold uppercase tracking-widest text-primary-navy/40">Guest</span>
-            <span className="col-span-2 text-[10px] font-bold uppercase tracking-widest text-primary-navy/40">Booking ID</span>
-            <span className="col-span-2 text-[10px] font-bold uppercase tracking-widest text-primary-navy/40">Date</span>
-            <span className="col-span-2 text-[10px] font-bold uppercase tracking-widest text-primary-navy/40 text-end">Amount</span>
-            <span className="col-span-2 text-[10px] font-bold uppercase tracking-widest text-primary-navy/40 text-end">Actions</span>
+            <span className="col-span-4 text-[10px] font-bold uppercase tracking-widest text-primary-navy/40">{t('invoices.guest')}</span>
+            <span className="col-span-2 text-[10px] font-bold uppercase tracking-widest text-primary-navy/40">{t('invoices.bookingId')}</span>
+            <span className="col-span-2 text-[10px] font-bold uppercase tracking-widest text-primary-navy/40">{t('common.date')}</span>
+            <span className="col-span-2 text-[10px] font-bold uppercase tracking-widest text-primary-navy/40 text-end">{t('common.amount')}</span>
+            <span className="col-span-2 text-[10px] font-bold uppercase tracking-widest text-primary-navy/40 text-end">{t('common.actions')}</span>
           </div>
 
           {nonCancelledBookings.length === 0 ? (
@@ -406,8 +407,8 @@ export const Invoices: React.FC = () => {
       {/* SECTION 2: Monthly VAT Reports */}
       <section className="space-y-4">
         <div className="px-1">
-          <h3 className="font-headline text-lg text-primary-navy font-bold">Business Tax Reports</h3>
-          <p className="text-primary-navy/50 text-xs font-medium">Monthly VAT summaries for confirmed bookings</p>
+          <h3 className="font-headline text-lg text-primary-navy font-bold">{t('invoices.businessTaxReports')}</h3>
+          <p className="text-primary-navy/50 text-xs font-medium">{t('invoices.businessTaxReportsDesc')}</p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -434,12 +435,12 @@ export const Invoices: React.FC = () => {
 
                 <div className="space-y-2">
                   <div className="flex justify-between text-xs">
-                    <span className="text-primary-navy/50">Revenue</span>
-                    <span className="font-bold text-primary-navy">{totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 2 })} OMR</span>
+                    <span className="text-primary-navy/50">{t('invoices.revenue')}</span>
+                    <span className="font-bold text-primary-navy">{totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 2 })} {t('common.omr')}</span>
                   </div>
                   <div className="flex justify-between text-xs">
-                    <span className="text-primary-navy/50">VAT (5%)</span>
-                    <span className="font-bold text-secondary-gold">{vatCollected.toFixed(2)} OMR</span>
+                    <span className="text-primary-navy/50">{t('invoices.vat')}</span>
+                    <span className="font-bold text-secondary-gold">{vatCollected.toFixed(2)} {t('common.omr')}</span>
                   </div>
                 </div>
 
@@ -449,7 +450,7 @@ export const Invoices: React.FC = () => {
                   className="w-full flex items-center justify-center gap-2 bg-primary-navy text-white py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest active:scale-[0.98] transition-all disabled:opacity-30 disabled:cursor-not-allowed"
                 >
                   <Download size={12} />
-                  Download VAT Report
+                  {t('invoices.downloadVatReport')}
                 </button>
               </motion.div>
             );
@@ -459,7 +460,7 @@ export const Invoices: React.FC = () => {
         <div className="bg-surface-container-low rounded-xl p-4 flex items-center gap-3">
           <Building2 size={16} className="text-secondary-gold flex-shrink-0" />
           <p className="text-[10px] text-primary-navy/50 font-bold">
-            Tax ID: <span className="text-primary-navy">1009283746</span> &bull; VAT Rate: <span className="text-primary-navy">5%</span> &bull; Al Malak Chalet, Oman
+            {t('invoices.taxId')}: <span className="text-primary-navy">1009283746</span> &bull; {t('invoices.vatRate')}: <span className="text-primary-navy">5%</span> &bull; {t('common.alMalak')}
           </p>
         </div>
       </section>

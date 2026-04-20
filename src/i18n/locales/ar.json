@@ -42,7 +42,11 @@
     "confirmed": "مؤكد",
     "pending": "معلق",
     "today": "اليوم",
-    "bookings": "حجوزات"
+    "bookings": "حجوزات",
+    "administration": "الإدارة",
+    "actions": "الإجراءات",
+    "amount": "المبلغ",
+    "date": "التاريخ"
   },
   "dashboard": {
     "greeting": "السلام عليكم",
@@ -143,6 +147,7 @@
   "booking": {
     "bookYourStay": "احجز إقامتك",
     "selectDates": "اختر التواريخ",
+    "selectDatesDesc": "اختر التواريخ المفضلة لديك وقم بتزويدنا بالتفاصيل لإتمام حجزك في {{name}}.",
     "tapOnce": "انقر على تاريخ للبدء، انقر على نفس التاريخ لحجز جزئي (بدون مبيت)، أو انقر على تاريخ آخر للإقامة الليلية.",
     "maintenanceMode": "قيد الصيانة حالياً",
     "maintenanceDesc": "لا نقبل حجوزات جديدة في الوقت الحالي. يرجى المحاولة لاحقاً.",
@@ -194,7 +199,20 @@
     "daysThu": "خمي",
     "daysFri": "جمع",
     "daysSat": "سبت",
-    "tapAgainDayUse": "انقر مرة أخرى لحجز جزئي، أو اختر تاريخ المغادرة"
+    "tapAgainDayUse": "انقر مرة أخرى لحجز جزئي، أو اختر تاريخ المغادرة",
+    "civilIdPassport": "بطاقة الهوية / الجواز",
+    "uploadCivilIdPassport": "ارفع صورة بطاقة الهوية / الجواز",
+    "idRequiredHint": "مطلوب — صورة واضحة (JPG / PNG / PDF)",
+    "bookingConfirmedOnApproval": "سيتم تأكيد حجزك بمجرد موافقة الإدارة على التحويل البنكي.",
+    "bankTransferDetails": "تفاصيل التحويل البنكي",
+    "bankLabel": "البنك:",
+    "accountLabel": "الحساب:",
+    "ibanLabel": "الآيبان:",
+    "mobileTransferLabel": "تحويل الهاتف (واتساب / تطبيق البنك):",
+    "referenceLabel": "المرجع:",
+    "referencePhoneNumber": "رقم هاتفك",
+    "receiptUploaded": "تم رفع الإيصال",
+    "uploadReceiptForApproval": "ارفع الإيصال للموافقة"
   },
   "sanctuary": {
     "estatePreview": "معاينة العقار",
@@ -205,7 +223,8 @@
     "aboutUs": "عن شاليه الملاك",
     "footerDesc": "شاليهات فاخرة مصممة للمسافر العصري في قلب المشهد الصحراوي العُماني.",
     "bookNow": "احجز الآن",
-    "leaveReview": "أضف تقييمك"
+    "leaveReview": "أضف تقييمك",
+    "tourismLicense": "رقم ترخيص السياحة"
   },
   "login": {
     "signIn": "تسجيل الدخول",
@@ -233,7 +252,8 @@
     "reviewSubmitted": "تم إرسال تقييمك. نقدّر ملاحظاتك!",
     "backToReviews": "العودة للتقييمات",
     "noReviews": "لا توجد تقييمات بعد. كن أول من يشارك تجربته!",
-    "tapToRate": "انقر للتقييم"
+    "tapToRate": "انقر للتقييم",
+    "feedbackHelps": "تقييمك يساعدنا في تحسين وتطوير تجربة الإقامة في {{name}}."
   },
   "confirmation": {
     "bookingConfirmed": "تم تأكيد الحجز!",
@@ -266,13 +286,39 @@
     "unpaid": "غير مدفوعة",
     "noInvoices": "لا توجد فواتير",
     "downloadPdf": "تحميل PDF",
-    "sendWhatsapp": "إرسال واتساب"
+    "sendWhatsapp": "إرسال واتساب",
+    "latestBookingInvoices": "أحدث فواتير الحجوزات",
+    "latestBookingInvoicesDesc": "فواتير فردية من الحجوزات الأخيرة",
+    "bookingId": "رقم الحجز",
+    "guest": "الضيف",
+    "businessTaxReports": "تقارير ضرائب العمل",
+    "businessTaxReportsDesc": "ملخصات شهرية لضريبة القيمة المضافة للحجوزات المؤكدة",
+    "revenue": "الإيرادات",
+    "vat": "ضريبة القيمة المضافة (٥٪)",
+    "downloadVatReport": "تحميل تقرير الضريبة",
+    "taxId": "الرقم الضريبي",
+    "vatRate": "نسبة الضريبة"
   },
   "reports": {
     "financialReports": "التقارير المالية",
     "totalRevenue": "إجمالي الإيرادات",
     "vatCollected": "ضريبة القيمة المضافة",
     "avgBookingValue": "متوسط قيمة الحجز",
-    "occupancyRate": "نسبة الإشغال"
+    "occupancyRate": "نسبة الإشغال",
+    "selectDateRange": "اختر النطاق الزمني",
+    "startDate": "تاريخ البدء",
+    "endDate": "تاريخ الانتهاء",
+    "generateReport": "إنشاء التقرير",
+    "generateReportDesc": "أنشئ تقارير مخصصة لأي نطاق زمني",
+    "averageStay": "متوسط مدة الإقامة",
+    "bookingDetails": "تفاصيل الحجز",
+    "confirmed": "مؤكد",
+    "noDataAvailable": "لا توجد بيانات لهذه الفترة",
+    "noDataHint": "حاول تعديل النطاق الزمني للعثور على الحجوزات المؤكدة.",
+    "downloadPdfReport": "تحميل تقرير PDF",
+    "generating": "جارٍ الإنشاء…",
+    "nightsCol": "الليالي",
+    "datesCol": "التواريخ",
+    "totals": "المجاميع"
   }
 }
