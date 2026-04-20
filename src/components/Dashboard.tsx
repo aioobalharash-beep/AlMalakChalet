@@ -73,41 +73,6 @@ export const Dashboard: React.FC = () => {
   const [pushBusy, setPushBusy] = useState(false);
   const [pushError, setPushError] = useState<string | null>(null);
   const [pushToast, setPushToast] = useState<{ title: string; body: string } | null>(null);
-  const [diagBusy, setDiagBusy] = useState(false);
-  const [diagResult, setDiagResult] = useState<string | null>(null);
-
-  const handleDiagnosePush = async () => {
-    setDiagBusy(true);
-    setDiagResult(null);
-    const lines: string[] = [];
-    try {
-      const healthRes = await fetch('/api/notify-admin', { method: 'GET' });
-      const healthText = await healthRes.text();
-      lines.push(`[1/2] GET /api/notify-admin → ${healthRes.status}`);
-      lines.push(healthText);
-
-      if (healthRes.status === 404) {
-        lines.push('→ Function not deployed. Push a commit to trigger a Vercel redeploy.');
-      } else if (healthRes.ok) {
-        const sendRes = await fetch('/api/notify-admin', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            bookingId: 'diagnostic-test',
-            guest_name: 'Test Guest',
-            total_amount: 1,
-          }),
-        });
-        const sendText = await sendRes.text();
-        lines.push(`[2/2] POST /api/notify-admin → ${sendRes.status}`);
-        lines.push(sendText);
-      }
-    } catch (err) {
-      lines.push(`Network error: ${err instanceof Error ? err.message : String(err)}`);
-    }
-    setDiagResult(lines.join('\n\n'));
-    setDiagBusy(false);
-  };
 
   const handleEnablePush = async () => {
     if (!user) return;
@@ -339,30 +304,8 @@ export const Dashboard: React.FC = () => {
       )}
 
       {pushStatus === 'granted' && (
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-emerald-600">
-            <Bell size={12} /> Push alerts on
-          </div>
-          <button
-            onClick={handleDiagnosePush}
-            disabled={diagBusy}
-            className="text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-lg border border-primary-navy/20 text-primary-navy hover:bg-primary-navy/5 disabled:opacity-50"
-          >
-            {diagBusy ? 'Testing…' : 'Diagnose push'}
-          </button>
-        </div>
-      )}
-
-      {diagResult && (
-        <div className="bg-primary-navy/95 text-white rounded-xl p-4 text-[11px] font-mono whitespace-pre-wrap break-words relative">
-          <button
-            onClick={() => setDiagResult(null)}
-            className="absolute top-2 end-2 text-white/40 hover:text-white"
-            aria-label="Dismiss"
-          >
-            <X size={14} />
-          </button>
-          {diagResult}
+        <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-emerald-600">
+          <Bell size={12} /> Push alerts on
         </div>
       )}
 
