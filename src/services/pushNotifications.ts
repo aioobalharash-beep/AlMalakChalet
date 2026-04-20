@@ -1,5 +1,5 @@
 import { getMessaging, getToken, onMessage, isSupported, Messaging } from 'firebase/messaging';
-import { doc, setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, setDoc, deleteDoc, getDocs, query, where, serverTimestamp } from 'firebase/firestore';
 import app, { db } from './firebase';
 
 const ADMIN_TOKENS_COLLECTION = 'admin_tokens';
@@ -9,15 +9,6 @@ const ADMIN_TOKENS_COLLECTION = 'admin_tokens';
 const VAPID_KEY =
   (import.meta.env.VITE_FIREBASE_VAPID_KEY as string | undefined) ||
   'BErsSKwySJ84fE7jBwq1BoZvkowA7qb-8TFaP1V1PQfOTlyWgbeDdvMZTJltugbZ2ij40Z4l7_PKRHsuGlaw5-O';
-
-const FIREBASE_CONFIG_QS = new URLSearchParams({
-  apiKey: (import.meta.env.VITE_FIREBASE_API_KEY as string) || '',
-  authDomain: (import.meta.env.VITE_FIREBASE_AUTH_DOMAIN as string) || '',
-  projectId: (import.meta.env.VITE_FIREBASE_PROJECT_ID as string) || '',
-  storageBucket: (import.meta.env.VITE_FIREBASE_STORAGE_BUCKET as string) || '',
-  messagingSenderId: (import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID as string) || '',
-  appId: (import.meta.env.VITE_FIREBASE_APP_ID as string) || '',
-}).toString();
 
 let messagingInstance: Messaging | null = null;
 
@@ -30,12 +21,7 @@ async function getMessagingInstance(): Promise<Messaging | null> {
 
 async function registerFcmServiceWorker(): Promise<ServiceWorkerRegistration | null> {
   if (!('serviceWorker' in navigator)) return null;
-  // Pass the Firebase web config as query params so the SW can initialize
-  // without a hardcoded copy of the config (see firebase-messaging-sw.js).
-  return navigator.serviceWorker.register(
-    `/firebase-messaging-sw.js?${FIREBASE_CONFIG_QS}`,
-    { scope: '/' }
-  );
+  return navigator.serviceWorker.register('/firebase-messaging-sw.js', { scope: '/' });
 }
 
 export type PushPermissionResult =
@@ -72,6 +58,23 @@ export async function enableAdminPushNotifications(
     });
 
     if (!token) return { status: 'error', error: 'Empty FCM token' };
+
+    // One admin = one active token. Purge any prior tokens for this adminId
+    // (e.g. a stale token from before a PWA reset that Apple hasn't invalidated
+    // yet) so bookings don't trigger duplicate notifications on the same
+    // device.
+    try {
+      const existing = await getDocs(
+        query(collection(db, ADMIN_TOKENS_COLLECTION), where('adminId', '==', adminId))
+      );
+      await Promise.all(
+        existing.docs
+          .filter((d) => d.id !== token)
+          .map((d) => deleteDoc(d.ref))
+      );
+    } catch {
+      // non-fatal — server also dedupes on send
+    }
 
     await setDoc(doc(db, ADMIN_TOKENS_COLLECTION, token), {
       token,

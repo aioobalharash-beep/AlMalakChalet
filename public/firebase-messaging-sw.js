@@ -1,53 +1,60 @@
 /* eslint-disable */
-/* global importScripts, firebase, self, clients */
+/* global self, clients */
 
-// Background Firebase Cloud Messaging service worker.
-// Registered by src/services/pushNotifications.ts at the app's root scope.
+// Pure Web Push service worker for FCM.
+//
+// Previously this file loaded firebase-messaging-compat.js and relied on
+// Firebase's SDK inside the SW to render notifications. On iOS PWAs that path
+// is unreliable — Safari handles SW initialization quirks badly, so Firebase's
+// internal push handler sometimes never registers, which causes FCM pushes to
+// arrive silently (nothing on the lock screen).
+//
+// FCM speaks the standard Web Push protocol (VAPID), so we can handle the push
+// event directly with zero Firebase code. The client still uses firebase's
+// getToken() to obtain the device token — but the SW is now a plain Web Push
+// handler, which works identically on Chrome, Safari, and iOS PWAs.
 
-importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js');
-
-// The client registers this SW with the public Firebase web config embedded as
-// query params (see pushNotifications.ts → registerFcmServiceWorker). That way
-// the same VITE_FIREBASE_* values the SPA uses also flow into the worker
-// without any copy-paste step.
-const swParams = new URL(self.location.href).searchParams;
-
-firebase.initializeApp({
-  apiKey: swParams.get('apiKey') || '',
-  authDomain: swParams.get('authDomain') || '',
-  projectId: swParams.get('projectId') || '',
-  storageBucket: swParams.get('storageBucket') || '',
-  messagingSenderId: swParams.get('messagingSenderId') || '',
-  appId: swParams.get('appId') || '',
+self.addEventListener('install', () => {
+  self.skipWaiting();
 });
 
-const messaging = firebase.messaging();
+self.addEventListener('activate', (event) => {
+  event.waitUntil(self.clients.claim());
+});
 
-messaging.onBackgroundMessage((payload) => {
-  const data = payload.data || {};
-  const title =
-    (payload.notification && payload.notification.title) ||
-    data.title ||
-    '🛎️ حجز جديد! (New Booking!)';
+self.addEventListener('push', (event) => {
+  let payload = {};
+  if (event.data) {
+    try {
+      payload = event.data.json();
+    } catch {
+      payload = { notification: { body: event.data.text() } };
+    }
+  }
+
+  const n = payload.notification || {};
+  const d = payload.data || {};
+  const title = n.title || d.title || '🛎️ حجز جديد! (New Booking!)';
   const body =
-    (payload.notification && payload.notification.body) ||
-    data.body ||
-    (data.guest_name && data.total_amount
-      ? `${data.guest_name} has booked for ${data.total_amount} OMR.`
+    n.body ||
+    d.body ||
+    (d.guest_name && d.total_amount
+      ? `${d.guest_name} has booked for ${d.total_amount} OMR.`
       : 'A new booking just arrived.');
 
-  self.registration.showNotification(title, {
-    body,
-    icon: '/icons/icon-192.png',
-    badge: '/icons/icon-192.png',
-    tag: data.bookingId || 'al-malak-booking',
-    data: {
-      url: data.url || '/admin',
-      bookingId: data.bookingId || null,
-    },
-    vibrate: [200, 100, 200],
-  });
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body,
+      icon: '/icons/icon-192.png',
+      badge: '/icons/icon-192.png',
+      tag: d.bookingId || 'al-malak-booking',
+      data: {
+        url: d.url || '/admin',
+        bookingId: d.bookingId || null,
+      },
+      vibrate: [200, 100, 200],
+    })
+  );
 });
 
 self.addEventListener('notificationclick', (event) => {
