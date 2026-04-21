@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { ChevronLeft, ChevronRight, ShieldCheck, AlertCircle, ArrowLeft, Upload, CreditCard, Building2, Check, FileText, X, Download } from 'lucide-react';
@@ -54,6 +54,9 @@ export const Booking: React.FC = () => {
 
   // Booked dates from Firestore (real-time)
   const [bookedDates, setBookedDates] = useState<Set<string>>(new Set());
+  // Becomes true after the first bookings snapshot resolves so auto-select
+  // waits for the authoritative list before defaulting the calendar range.
+  const [bookedDatesLoaded, setBookedDatesLoaded] = useState(false);
 
   // Maintenance mode — blocks all bookings when admin toggles off
   const [maintenanceMode, setMaintenanceMode] = useState(false);
@@ -119,6 +122,7 @@ export const Booking: React.FC = () => {
       });
       setBookedDates(dates);
       setBookedSlots(slotMap);
+      setBookedDatesLoaded(true);
     });
     return () => unsubscribe();
   }, []);
@@ -198,6 +202,51 @@ export const Booking: React.FC = () => {
     }
     return false;
   };
+
+  // Find the first available consecutive pair (D, D+1) starting from today,
+  // skipping any day present in bookedDates. Restricted to same-month pairs
+  // because the calendar selection model is scoped to the active month.
+  const findNextAvailableNightStayPair = useCallback((): { start: Date; end: Date } | null => {
+    const from = new Date();
+    from.setHours(0, 0, 0, 0);
+
+    for (let i = 0; i < 365; i++) {
+      const start = new Date(from);
+      start.setDate(from.getDate() + i);
+      const end = new Date(start);
+      end.setDate(start.getDate() + 1);
+
+      // Cross-month pairs can't be expressed in the current selectedDates shape.
+      if (start.getMonth() !== end.getMonth()) continue;
+
+      if (!bookedDates.has(formatLocalDate(start)) && !bookedDates.has(formatLocalDate(end))) {
+        return { start, end };
+      }
+    }
+    return null;
+  }, [bookedDates]);
+
+  const applyNightStayAutoSelect = useCallback((): boolean => {
+    const pair = findNextAvailableNightStayPair();
+    if (!pair) return false;
+    setCurrentMonth(pair.start.getMonth());
+    setCurrentYear(pair.start.getFullYear());
+    setSelectedDates({ start: pair.start.getDate(), end: pair.end.getDate() });
+    setErrors(prev => ({ ...prev, dates: '' }));
+    return true;
+  }, [findNextAvailableNightStayPair]);
+
+  // One-shot auto-select on initial load (Night Stay is the default stay type)
+  // so the guest never faces an empty calendar once real bookings are loaded.
+  const didInitialAutoSelectRef = useRef(false);
+  useEffect(() => {
+    if (didInitialAutoSelectRef.current) return;
+    if (stayType !== 'night_stay') return;
+    if (!bookedDatesLoaded) return;
+    if (selectedDates.start !== null || selectedDates.end !== null) return;
+    didInitialAutoSelectRef.current = true;
+    applyNightStayAutoSelect();
+  }, [stayType, bookedDatesLoaded, selectedDates.start, selectedDates.end, applyNightStayAutoSelect]);
 
   const handleDayClick = (day: number) => {
     const clickedDate = new Date(currentYear, currentMonth, day);
@@ -642,8 +691,16 @@ export const Booking: React.FC = () => {
                 setSelectedSlot(null);
                 if (opt.value === 'day_use') {
                   setSelectedDates(prev => prev.start !== null ? { start: prev.start, end: prev.start } : prev);
+                } else if (opt.value === 'night_stay') {
+                  // If a single-day selection exists, just clear the end so the user can extend.
+                  // If nothing is selected, auto-pick the next available (D, D+1) pair.
+                  if (selectedDates.start !== null && selectedDates.end === selectedDates.start) {
+                    setSelectedDates({ start: selectedDates.start, end: null });
+                  } else if (selectedDates.start === null) {
+                    applyNightStayAutoSelect();
+                  }
                 } else {
-                  // Night Stay / Event: if a single-day selection existed, clear the end so the user can pick a range.
+                  // Event: if a single-day selection existed, clear the end so the user can pick a range.
                   setSelectedDates(prev => prev.start !== null && prev.end === prev.start ? { start: prev.start, end: null } : prev);
                 }
               }}

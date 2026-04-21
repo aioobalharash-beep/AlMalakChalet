@@ -26,9 +26,9 @@ const Reports = lazy(() => import('./components/Reports').then(m => ({ default: 
 const PropertyEditor = lazy(() => import('./components/PropertyEditor').then(m => ({ default: m.PropertyEditor })));
 
 function AdminRoute({ children }: { children: React.ReactNode }) {
-  const { user, isLoading } = useAuth();
+  const { user, isAdmin, isLoading } = useAuth();
   if (isLoading) return <LoadingScreen />;
-  if (!user || user.role !== 'admin') return <Navigate to="/login" replace />;
+  if (!user || !isAdmin) return <Navigate to="/login" replace />;
   return <>{children}</>;
 }
 
@@ -44,7 +44,7 @@ function LoadingScreen() {
 }
 
 function AppRoutes() {
-  const { user, isLoading } = useAuth();
+  const { user, isAdmin, isLoading } = useAuth();
 
   if (isLoading) return <LoadingScreen />;
 
@@ -62,7 +62,7 @@ function AppRoutes() {
         </Route>
 
         {/* Auth */}
-        <Route path="/login" element={user ? <Navigate to={user.role === 'admin' ? '/admin' : '/'} replace /> : <Login />} />
+        <Route path="/login" element={user ? <Navigate to={isAdmin ? '/admin' : '/'} replace /> : <Login />} />
 
         {/* Admin Routes */}
         <Route path="/admin" element={<AdminRoute><Layout /></AdminRoute>}>
