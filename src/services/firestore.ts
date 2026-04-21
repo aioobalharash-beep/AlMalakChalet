@@ -16,7 +16,7 @@ import {
   signOut,
 } from 'firebase/auth';
 import { db, auth } from './firebase';
-import { CLIENT_CONFIG } from '../config/clientConfig';
+import { isAdminEmail } from '../config/clientConfig';
 import { notifyAdminsOfNewBooking } from './pushNotifications';
 
 // ── Collection refs ──
@@ -84,11 +84,6 @@ export interface AppUser {
   role: UserRole;
   phone?: string;
 }
-
-const isAdminEmail = (email: string | null | undefined): boolean => {
-  const adminEmail = (CLIENT_CONFIG.admin.email || '').trim().toLowerCase();
-  return !!email && !!adminEmail && email.trim().toLowerCase() === adminEmail;
-};
 
 const mapAuthError = (err: any): Error => {
   const code: string = err?.code || '';

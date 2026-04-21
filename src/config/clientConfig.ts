@@ -6,6 +6,8 @@ export interface ClientTheme {
 
 export interface ClientAdmin {
   email: string;
+  /** Additional authorized admin emails (beyond the primary). */
+  additionalEmails?: string[];
   name: string;
 }
 
@@ -32,6 +34,7 @@ export const CLIENT_CONFIG: ClientConfig = {
   },
   admin: {
     email: 'nooralmalak901@gmail.com',
+    additionalEmails: ['shaikhashaikha77@gmail.com'],
     name: 'Al Malak Admin',
   },
   social: {
@@ -41,6 +44,18 @@ export const CLIENT_CONFIG: ClientConfig = {
 };
 
 export const getClientConfig = (): ClientConfig => CLIENT_CONFIG;
+
+export const ADMIN_EMAILS: string[] = [
+  CLIENT_CONFIG.admin.email,
+  ...(CLIENT_CONFIG.admin.additionalEmails ?? []),
+]
+  .map(e => (e || '').trim().toLowerCase())
+  .filter(Boolean);
+
+export const isAdminEmail = (email: string | null | undefined): boolean => {
+  if (!email) return false;
+  return ADMIN_EMAILS.includes(email.trim().toLowerCase());
+};
 
 export const whatsappHref = (number: string): string => {
   const digits = (number || '').replace(/\D/g, '');

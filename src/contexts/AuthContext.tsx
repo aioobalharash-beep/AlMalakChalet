@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../services/firebase';
 import { authApi } from '../services/api';
+import { isAdminEmail } from '../config/clientConfig';
 
 interface User {
   id: string;
@@ -30,8 +31,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
       if (fbUser) {
         try {
-          const profile = await authApi.me(fbUser.uid);
-          setUser((profile as User) ?? null);
+          const profile = (await authApi.me(fbUser.uid)) as User | null;
+          if (profile) {
+            // Email-based admin allowlist wins when the Firestore doc is stale.
+            const role = profile.role === 'admin' || isAdminEmail(profile.email)
+              ? 'admin'
+              : profile.role;
+            setUser({ ...profile, role });
+          } else {
+            setUser(null);
+          }
         } catch {
           setUser(null);
         }
@@ -67,7 +76,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       login,
       register,
       logout,
-      isAdmin: user?.role === 'admin',
+      isAdmin: user?.role === 'admin' || isAdminEmail(user?.email),
     }}>
       {children}
     </AuthContext.Provider>
