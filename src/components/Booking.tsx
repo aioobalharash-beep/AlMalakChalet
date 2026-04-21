@@ -206,7 +206,8 @@ export const Booking: React.FC = () => {
   // Find the first available consecutive pair (D, D+1) starting from today,
   // skipping any day present in bookedDates. Restricted to same-month pairs
   // because the calendar selection model is scoped to the active month.
-  const findNextAvailableNightStayPair = useCallback((): { start: Date; end: Date } | null => {
+  // Shared between Night Stay and Event since both need a 2-day default range.
+  const findNextAvailableRangePair = useCallback((): { start: Date; end: Date } | null => {
     const from = new Date();
     from.setHours(0, 0, 0, 0);
 
@@ -226,15 +227,15 @@ export const Booking: React.FC = () => {
     return null;
   }, [bookedDates]);
 
-  const applyNightStayAutoSelect = useCallback((): boolean => {
-    const pair = findNextAvailableNightStayPair();
+  const applyAutoRangeSelect = useCallback((): boolean => {
+    const pair = findNextAvailableRangePair();
     if (!pair) return false;
     setCurrentMonth(pair.start.getMonth());
     setCurrentYear(pair.start.getFullYear());
     setSelectedDates({ start: pair.start.getDate(), end: pair.end.getDate() });
     setErrors(prev => ({ ...prev, dates: '' }));
     return true;
-  }, [findNextAvailableNightStayPair]);
+  }, [findNextAvailableRangePair]);
 
   // One-shot auto-select on initial load (Night Stay is the default stay type)
   // so the guest never faces an empty calendar once real bookings are loaded.
@@ -245,8 +246,8 @@ export const Booking: React.FC = () => {
     if (!bookedDatesLoaded) return;
     if (selectedDates.start !== null || selectedDates.end !== null) return;
     didInitialAutoSelectRef.current = true;
-    applyNightStayAutoSelect();
-  }, [stayType, bookedDatesLoaded, selectedDates.start, selectedDates.end, applyNightStayAutoSelect]);
+    applyAutoRangeSelect();
+  }, [stayType, bookedDatesLoaded, selectedDates.start, selectedDates.end, applyAutoRangeSelect]);
 
   const handleDayClick = (day: number) => {
     const clickedDate = new Date(currentYear, currentMonth, day);
@@ -691,17 +692,21 @@ export const Booking: React.FC = () => {
                 setSelectedSlot(null);
                 if (opt.value === 'day_use') {
                   setSelectedDates(prev => prev.start !== null ? { start: prev.start, end: prev.start } : prev);
-                } else if (opt.value === 'night_stay') {
-                  // If a single-day selection exists, just clear the end so the user can extend.
-                  // If nothing is selected, auto-pick the next available (D, D+1) pair.
-                  if (selectedDates.start !== null && selectedDates.end === selectedDates.start) {
-                    setSelectedDates({ start: selectedDates.start, end: null });
-                  } else if (selectedDates.start === null) {
-                    applyNightStayAutoSelect();
-                  }
-                } else {
-                  // Event: if a single-day selection existed, clear the end so the user can pick a range.
-                  setSelectedDates(prev => prev.start !== null && prev.end === prev.start ? { start: prev.start, end: null } : prev);
+                  return;
+                }
+
+                // Night Stay and Event share identical range semantics: auto-pick
+                // the next available (D, D+1) pair when nothing (or only a leftover
+                // single day from Day Use) is selected. Any existing valid range is
+                // preserved so switching between the two types stays seamless.
+                const hasSingleDay = selectedDates.start !== null && selectedDates.end === selectedDates.start;
+                const hasNoSelection = selectedDates.start === null;
+
+                if (hasSingleDay) {
+                  setSelectedDates({ start: selectedDates.start, end: null });
+                  applyAutoRangeSelect();
+                } else if (hasNoSelection) {
+                  applyAutoRangeSelect();
                 }
               }}
               className={cn(
