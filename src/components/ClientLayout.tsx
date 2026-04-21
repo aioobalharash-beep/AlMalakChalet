@@ -5,6 +5,7 @@ import { cn } from '@/src/lib/utils';
 import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
 import { LanguageToggle } from './LanguageToggle';
+import { Footer } from './Footer';
 
 export const ClientLayout: React.FC = () => {
   const navigate = useNavigate();
@@ -71,8 +72,11 @@ export const ClientLayout: React.FC = () => {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 pt-16 pb-32">
-        <Outlet />
+      <main className="flex-1 pt-16 pb-32 flex flex-col">
+        <div className="flex-1">
+          <Outlet />
+        </div>
+        <Footer />
       </main>
 
       {/* Client Bottom Nav */}

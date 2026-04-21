@@ -24,6 +24,7 @@ import { useTranslation } from 'react-i18next';
 import { notificationsApi } from '../services/api';
 import { LanguageToggle } from './LanguageToggle';
 import { BrandMark } from './BrandMark';
+import { Footer } from './Footer';
 
 interface Notification {
   id: string;
@@ -336,8 +337,11 @@ export const Layout: React.FC = () => {
         </header>
 
         {/* View Content */}
-        <main className="flex-1 overflow-y-auto pb-24 md:pb-8">
-          <Outlet />
+        <main className="flex-1 overflow-y-auto pb-24 md:pb-8 flex flex-col">
+          <div className="flex-1">
+            <Outlet />
+          </div>
+          <Footer />
         </main>
 
         {/* Bottom Nav for Mobile */}
