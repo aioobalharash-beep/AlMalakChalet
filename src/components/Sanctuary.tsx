@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { Users, Ruler, CheckCircle2, Calendar as CalendarIcon, Instagram, MessageCircle, Bed, Bath, Car, Wifi, Wind, Flame, Waves, TreePalm, Shield, Star, Coffee, Utensils, Tv, Dumbbell, Baby, Sofa } from 'lucide-react';
+import { Users, Ruler, Calendar as CalendarIcon, Instagram, MessageCircle, Bed, Bath, Car, Wifi, Wind, Flame, Waves, TreePalm, Shield, Star, Coffee, Utensils, Tv, Dumbbell, Baby, Sofa } from 'lucide-react';
 import { OptimizedImage } from './OptimizedImage';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../services/firebase';
@@ -68,6 +68,11 @@ const getMinPrice = (pricing: PricingSettings | undefined, fallback: number): nu
   return minRate;
 };
 
+interface FeatureSection {
+  title: string;
+  items: string[];
+}
+
 interface PropertyDetails {
   name: string | BilingualField;
   capacity: number;
@@ -75,8 +80,7 @@ interface PropertyDetails {
   nightly_rate: number;
   headline: string | BilingualField;
   description: string | BilingualField;
-  features: string[];
-  features_ar?: string[];
+  featureSections: FeatureSection[];
   gallery: { url: string; label: string }[];
   pricing?: PricingSettings;
   quickFacts?: { icon: string; label: string; label_ar: string }[];
@@ -92,7 +96,7 @@ const DEFAULTS: PropertyDetails = {
   nightly_rate: 120,
   headline: 'Curated Excellence',
   description: 'Nestled in the heart of the Omani landscape, Al Malak Chalet offers an unparalleled blend of modern luxury and heritage-inspired architecture. Every corner of this estate has been curated to provide a seamless flow between indoor relaxation and outdoor majesty.',
-  features: ['Concierge Service', 'Daily Maintenance', 'Private Parking', 'Secure Perimeter'],
+  featureSections: [],
   gallery: [
     { url: 'https://picsum.photos/seed/oman-bedroom-1/800/1000', label: 'Master Suite: Serene Sands' },
     { url: 'https://picsum.photos/seed/oman-bedroom-2/800/1000', label: 'Guest Wing: Golden Hour' },
@@ -246,11 +250,13 @@ export const Sanctuary: React.FC = () => {
           <div className="h-4 bg-primary-navy/5 rounded w-full" />
           <div className="h-4 bg-primary-navy/5 rounded w-3/4" />
         </div>
-        <div className="px-6 grid grid-cols-2 gap-y-4">
+        <div className="px-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[1, 2, 3, 4].map(i => (
-            <div key={i} className="flex items-center gap-3">
-              <div className="h-4 w-4 bg-primary-navy/5 rounded-full" />
-              <div className="h-3 bg-primary-navy/5 rounded w-24" />
+            <div key={i} className="bg-white p-5 rounded-[20px] border border-primary-navy/5 space-y-3">
+              <div className="h-4 bg-primary-navy/5 rounded w-24" />
+              <div className="h-3 bg-primary-navy/5 rounded w-full" />
+              <div className="h-3 bg-primary-navy/5 rounded w-3/4" />
+              <div className="h-3 bg-primary-navy/5 rounded w-5/6" />
             </div>
           ))}
         </div>
@@ -325,19 +331,35 @@ export const Sanctuary: React.FC = () => {
         <div className="mt-4 text-sm text-primary-navy/60">
           <span className="font-bold text-secondary-gold">{t('sanctuary.from')} {getMinPrice(data.pricing, data.nightly_rate)} {t('common.omr')}</span> {t('common.perNight')}
         </div>
-        {data.features.length > 0 && (
-          <div className="mt-8 grid grid-cols-2 gap-y-4">
-            {data.features.map((item, idx) => (
-              <div key={item} className="flex items-center gap-3">
-                <CheckCircle2 className="text-secondary-gold" size={16} />
-                <span className="text-xs font-bold text-primary-navy/80">
-                  {lang === 'ar' && data.features_ar?.[idx] ? data.features_ar[idx] : item}
-                </span>
-              </div>
+      </section>
+
+      {/* Resort Guide — Feature Sections */}
+      {data.featureSections && data.featureSections.length > 0 && (
+        <section className="px-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {data.featureSections.map((section, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.05 }}
+                className="bg-white p-5 rounded-[20px] border border-primary-navy/5 shadow-sm"
+              >
+                <h4 className="font-headline text-sm font-bold text-secondary-gold uppercase tracking-widest mb-3">
+                  {section.title}
+                </h4>
+                <ul className="space-y-2">
+                  {section.items.map((item, j) => (
+                    <li key={j} className="text-xs font-bold text-primary-navy/80 leading-relaxed">
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </motion.div>
             ))}
           </div>
-        )}
-      </section>
+        </section>
+      )}
 
       {/* Footer Info */}
       <Footer
