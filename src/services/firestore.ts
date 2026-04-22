@@ -234,6 +234,9 @@ export interface FirestoreBooking {
   stayTotal?: number;
   depositAmount?: number;
   grandTotal?: number;
+  balance_due?: number;
+  deposit_paid?: boolean;
+  isManual?: boolean;
   status: string;
   payment_status: string;
   payment_method: 'thawani' | 'bank_transfer' | 'walk_in';
@@ -267,6 +270,8 @@ export const firestoreBookings = {
     payment_method: 'thawani' | 'bank_transfer' | 'walk_in';
     payment_mode?: 'paid' | 'free';
     amount_paid?: number;
+    deposit_paid?: boolean;
+    isManual?: boolean;
     receipt_image?: string;
     receiptURL?: string;
     idImageUrl?: string;
@@ -288,10 +293,20 @@ export const firestoreBookings = {
     const isWalkIn = data.payment_method === 'walk_in';
     const isBankTransfer = data.payment_method === 'bank_transfer';
     const isFreeWalkIn = isWalkIn && data.payment_mode === 'free';
-    // Walk-in: grandTotal reflects amount_paid (paid) or 0 (free). Online flows use explicit grandTotal.
+    const isManual = data.isManual === true;
+    // Online flows always assume the security deposit has cleared alongside the
+    // stay. Walk-ins can split the two — the admin records whether cash/deposit
+    // was collected on the spot via `deposit_paid`. Default true so existing
+    // flows are unaffected.
+    const depositPaid = data.deposit_paid !== false;
+    // Walk-in grandTotal: amount_paid for the stay, plus deposit only when it
+    // was actually collected. Online flows keep using their explicit grandTotal.
+    const walkInStayPaid = isFreeWalkIn ? 0 : Number(data.amount_paid) || 0;
     const grandTotal = isWalkIn
-      ? (isFreeWalkIn ? 0 : Number(data.amount_paid) || 0)
+      ? walkInStayPaid + (depositPaid ? depositAmount : 0)
       : (Number(data.grandTotal) || (stayTotal + depositAmount));
+    // Amount still owed on arrival — drives the "Deposit Due on Arrival" notice.
+    const balanceDue = isWalkIn && !depositPaid ? depositAmount : 0;
 
     // payment_status: free → 'free', paid walk-in → 'paid', bank_transfer → 'pending',
     // thawani → 'paid'. Walk-in falls back to 'pending' if no mode set.
@@ -314,9 +329,12 @@ export const firestoreBookings = {
       nightly_rate: data.nightly_rate,
       security_deposit: depositAmount,
       total_amount: grandTotal,
-      stayTotal: isWalkIn ? grandTotal : stayTotal,
-      depositAmount: isWalkIn ? 0 : depositAmount,
+      stayTotal: isWalkIn ? walkInStayPaid : stayTotal,
+      depositAmount,
       grandTotal,
+      balance_due: balanceDue,
+      deposit_paid: isWalkIn ? depositPaid : true,
+      ...(isManual ? { isManual: true } : {}),
       status: isBankTransfer ? 'pending' : 'confirmed',
       payment_status: paymentStatus,
       payment_method: data.payment_method,

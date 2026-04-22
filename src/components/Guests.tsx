@@ -1,15 +1,15 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Search, Calendar as CalendarIcon, Phone, UserPlus, X, Clock, AlertCircle, Pin, Check, Ban, Paperclip, Upload, Gift } from 'lucide-react';
+import { Search, Calendar as CalendarIcon, Phone, UserPlus, X, Clock, AlertCircle, Pin, Check, Ban, Paperclip, Home } from 'lucide-react';
 import { cn } from '@/src/lib/utils';
 import { useSearchParams } from 'react-router-dom';
 import { propertiesApi } from '../services/api';
 import { collection, query, orderBy, onSnapshot, doc, updateDoc, limit } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { firestoreBookings } from '../services/firestore';
-import { uploadToCloudinary } from '../services/cloudinary';
 import type { Property } from '../types';
 import { useTranslation } from 'react-i18next';
+import { AddWalkInGuest } from './AddWalkInGuest';
 
 type DisplayStatus = 'pending' | 'upcoming' | 'checked-in' | 'completed';
 
@@ -26,11 +26,14 @@ interface BookingGuest {
   total_amount: number;
   security_deposit: number;
   deposit_refunded: boolean;
+  deposit_paid: boolean;
+  balance_due: number;
   status: string;
   payment_status: string;
   payment_method: string;
   receiptURL: string;
   idImageUrl?: string;
+  isManual: boolean;
   created_at: string;
   isPinned: boolean;
   displayStatus: DisplayStatus;
@@ -83,17 +86,9 @@ export const Guests: React.FC = () => {
   const [pageLimit, setPageLimit] = useState(PAGE_SIZE);
   const [hasMore, setHasMore] = useState(true);
 
-  // Add guest modal
+  // Add walk-in guest modal
   const [showAddModal, setShowAddModal] = useState(false);
   const [properties, setProperties] = useState<Property[]>([]);
-  const [addForm, setAddForm] = useState({ name: '', phone: '', email: '', check_in: '', check_out: '', property_id: '', property_name: '' });
-  const [addErrors, setAddErrors] = useState<Record<string, string>>({});
-  const [addSubmitting, setAddSubmitting] = useState(false);
-  const [paymentMode, setPaymentMode] = useState<'paid' | 'free'>('paid');
-  const [amountPaid, setAmountPaid] = useState('');
-  const [receiptFile, setReceiptFile] = useState<File | null>(null);
-  const [receiptFileName, setReceiptFileName] = useState('');
-  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
 
   // Real-time bookings from Firestore with pagination
   useEffect(() => {
@@ -116,11 +111,14 @@ export const Guests: React.FC = () => {
             total_amount: data.total_amount || 0,
             security_deposit: data.security_deposit || 0,
             deposit_refunded: data.deposit_refunded === true,
+            deposit_paid: data.deposit_paid !== false,
+            balance_due: Number(data.balance_due) || 0,
             status: data.status || 'pending',
             payment_status: data.payment_status || 'pending',
             payment_method: data.payment_method || '',
             receiptURL: data.receiptURL || '',
             idImageUrl: data.idImageUrl || '',
+            isManual: data.isManual === true,
             created_at: data.created_at || '',
             isPinned: data.isPinned === true,
             displayStatus: computeDisplayStatus({
@@ -229,75 +227,6 @@ export const Guests: React.FC = () => {
       await updateDoc(doc(db, 'bookings', bookingId), { isPinned: !currentlyPinned });
     } catch (err) {
       console.error('Failed to toggle pin:', err);
-    }
-  };
-
-  const uploadReceipt = (file: File): Promise<string> =>
-    uploadToCloudinary(file, {
-      folder: 'al-malak-receipts',
-      onProgress: (pct) => setUploadProgress(pct),
-    }).finally(() => setUploadProgress(null));
-
-  const resetAddForm = () => {
-    setAddForm({ name: '', phone: '', email: '', check_in: '', check_out: '', property_id: '', property_name: '' });
-    setPaymentMode('paid');
-    setAmountPaid('');
-    setReceiptFile(null);
-    setReceiptFileName('');
-    setAddErrors({});
-  };
-
-  const handleAddGuest = async () => {
-    const errs: Record<string, string> = {};
-    if (!addForm.name.trim()) errs.name = 'Name is required';
-    if (!addForm.phone.trim()) errs.phone = 'Phone is required';
-    if (!addForm.check_in) errs.check_in = 'Check-in date is required';
-    if (!addForm.check_out) errs.check_out = 'Check-out date is required';
-    if (paymentMode === 'paid') {
-      const amt = parseFloat(amountPaid);
-      if (!amountPaid || isNaN(amt) || amt <= 0) errs.amount = 'Amount paid is required';
-    }
-    setAddErrors(errs);
-    if (Object.keys(errs).length > 0) return;
-
-    setAddSubmitting(true);
-    try {
-      // Upload receipt first (optional, only for paid bookings with a file)
-      let receiptURL = '';
-      if (paymentMode === 'paid' && receiptFile) {
-        try {
-          receiptURL = await uploadReceipt(receiptFile);
-        } catch (uploadErr) {
-          console.error('Receipt upload failed:', uploadErr);
-          setAddErrors({ receipt: 'Receipt upload failed. Please try again.' });
-          setAddSubmitting(false);
-          return;
-        }
-      }
-
-      const prop = properties[0];
-      const parsedAmount = paymentMode === 'paid' ? parseFloat(amountPaid) : 0;
-      await firestoreBookings.create({
-        property_id: prop?.id || 'default',
-        property_name: prop?.name || 'Al Malak Chalet',
-        guest_name: addForm.name.trim(),
-        guest_phone: `+968${addForm.phone.replace(/\s/g, '')}`,
-        guest_email: addForm.email || undefined,
-        check_in: addForm.check_in,
-        check_out: addForm.check_out,
-        nightly_rate: prop?.nightly_rate || 120,
-        security_deposit: 0,
-        payment_method: 'walk_in',
-        payment_mode: paymentMode,
-        amount_paid: parsedAmount,
-        receiptURL,
-      });
-      setShowAddModal(false);
-      resetAddForm();
-    } catch (err) {
-      console.error('Failed to add guest:', err);
-    } finally {
-      setAddSubmitting(false);
     }
   };
 
@@ -413,7 +342,18 @@ export const Guests: React.FC = () => {
                 {/* Header */}
                 <div className="flex justify-between items-start">
                   <div>
-                    <h3 className="font-headline font-bold text-primary-navy">{guest.guest_name}</h3>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="font-headline font-bold text-primary-navy">{guest.guest_name}</h3>
+                      {guest.isManual && (
+                        <span
+                          title="Walk-in / manual entry"
+                          className="inline-flex items-center gap-1 bg-secondary-gold/15 text-secondary-gold px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-widest"
+                        >
+                          <Home size={9} />
+                          Manual
+                        </span>
+                      )}
+                    </div>
                     <p className="text-xs text-primary-navy/50 font-medium">{guest.guest_phone}</p>
                   </div>
                   <div className="flex items-center gap-2">
@@ -454,8 +394,21 @@ export const Guests: React.FC = () => {
                   <span className="text-xs font-bold text-primary-navy font-headline">{guest.total_amount} {t('common.omr')}</span>
                 </div>
 
-                {/* Deposit Badge */}
-                {guest.security_deposit > 0 && (
+                {/* Deposit Due on Arrival — shown in red when the deposit was
+                    not collected at booking time (walk-in flow). */}
+                {guest.security_deposit > 0 && !guest.deposit_paid && (
+                  <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-lg px-4 py-2.5">
+                    <AlertCircle size={13} className="text-red-500 flex-shrink-0" />
+                    <div className="flex flex-col">
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-red-700">Deposit Due on Arrival</span>
+                      <span className="text-xs font-bold text-red-700 font-headline">{(guest.balance_due || guest.security_deposit).toFixed(2)} {t('common.omr')}</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Deposit Badge — shown once the deposit has been collected
+                    and tracks refund state post-stay. */}
+                {guest.security_deposit > 0 && guest.deposit_paid && (
                   <div className="flex items-center justify-between bg-amber-50/60 border border-amber-200/70 rounded-lg px-4 py-2.5">
                     <div className="flex items-center gap-2">
                       <AlertCircle size={13} className="text-amber-600 flex-shrink-0" />
@@ -717,200 +670,12 @@ export const Guests: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* Add Guest Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-[24px] w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl"
-          >
-            <div className="flex items-center justify-between p-6 border-b border-primary-navy/5">
-              <div>
-                <h3 className="font-headline text-lg font-bold text-primary-navy">{t('guests.addWalkInGuest')}</h3>
-                <p className="text-xs text-primary-navy/50 font-medium">{t('guests.manualGuestEntry')}</p>
-              </div>
-              <button onClick={() => setShowAddModal(false)} className="p-2 hover:bg-primary-navy/5 rounded-full">
-                <X size={20} className="text-primary-navy/40" />
-              </button>
-            </div>
-
-            <div className="p-6 space-y-5">
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-secondary-gold">{t('guests.fullName')} *</label>
-                <input
-                  type="text"
-                  value={addForm.name}
-                  onChange={(e) => setAddForm(p => ({ ...p, name: e.target.value }))}
-                  placeholder="e.g. Ahmed Al-Said"
-                  className={cn("w-full bg-surface-container-low border rounded-xl py-3 px-4 text-sm placeholder:text-primary-navy/20", addErrors.name ? "border-red-300" : "border-transparent")}
-                />
-                {addErrors.name && <p className="text-red-500 text-xs">{addErrors.name}</p>}
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-secondary-gold">{t('guests.phone')} *</label>
-                <div className="flex gap-2">
-                  <div className="bg-surface-container-low rounded-xl py-3 px-3 text-sm font-bold text-primary-navy/60">+968</div>
-                  <input
-                    type="text"
-                    value={addForm.phone}
-                    onChange={(e) => setAddForm(p => ({ ...p, phone: e.target.value.replace(/[^\d\s]/g, '') }))}
-                    placeholder="9000 0000"
-                    maxLength={9}
-                    className={cn("flex-1 bg-surface-container-low border rounded-xl py-3 px-4 text-sm placeholder:text-primary-navy/20", addErrors.phone ? "border-red-300" : "border-transparent")}
-                  />
-                </div>
-                {addErrors.phone && <p className="text-red-500 text-xs">{addErrors.phone}</p>}
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-secondary-gold">{t('guests.emailOptional')}</label>
-                <input
-                  type="email"
-                  value={addForm.email}
-                  onChange={(e) => setAddForm(p => ({ ...p, email: e.target.value }))}
-                  placeholder="guest@email.com"
-                  className="w-full bg-surface-container-low border border-transparent rounded-xl py-3 px-4 text-sm placeholder:text-primary-navy/20"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-secondary-gold">{t('guests.checkIn')} *</label>
-                  <input
-                    type="date"
-                    value={addForm.check_in}
-                    onChange={(e) => setAddForm(p => ({ ...p, check_in: e.target.value }))}
-                    className={cn("w-full bg-surface-container-low border rounded-xl py-3 px-4 text-sm", addErrors.check_in ? "border-red-300" : "border-transparent")}
-                  />
-                  {addErrors.check_in && <p className="text-red-500 text-xs">{addErrors.check_in}</p>}
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-secondary-gold">{t('guests.checkOut')} *</label>
-                  <input
-                    type="date"
-                    value={addForm.check_out}
-                    onChange={(e) => setAddForm(p => ({ ...p, check_out: e.target.value }))}
-                    className={cn("w-full bg-surface-container-low border rounded-xl py-3 px-4 text-sm", addErrors.check_out ? "border-red-300" : "border-transparent")}
-                  />
-                  {addErrors.check_out && <p className="text-red-500 text-xs">{addErrors.check_out}</p>}
-                </div>
-              </div>
-
-              {/* Payment Mode Toggle */}
-              <div className="space-y-3 pt-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-secondary-gold">{t('guests.paymentMode')}</label>
-                <div className="grid grid-cols-2 gap-2 bg-surface-container-low rounded-xl p-1">
-                  <button
-                    type="button"
-                    onClick={() => setPaymentMode('paid')}
-                    className={cn(
-                      "flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs font-bold uppercase tracking-widest transition-all active:scale-[0.98]",
-                      paymentMode === 'paid'
-                        ? "bg-primary-navy text-white shadow-sm"
-                        : "text-primary-navy/50 hover:text-primary-navy/70"
-                    )}
-                  >
-                    <Check size={13} />
-                    {t('guests.paid')}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setPaymentMode('free')}
-                    className={cn(
-                      "flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs font-bold uppercase tracking-widest transition-all active:scale-[0.98]",
-                      paymentMode === 'free'
-                        ? "bg-secondary-gold text-primary-navy shadow-sm"
-                        : "text-primary-navy/50 hover:text-primary-navy/70"
-                    )}
-                  >
-                    <Gift size={13} />
-                    {t('guests.free')}
-                  </button>
-                </div>
-
-                {paymentMode === 'paid' && (
-                  <div className="space-y-3 pt-1">
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold uppercase tracking-widest text-secondary-gold">{t('guests.amountPaid')} *</label>
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          inputMode="decimal"
-                          value={amountPaid}
-                          onChange={(e) => setAmountPaid(e.target.value)}
-                          placeholder="0.00"
-                          className={cn("flex-1 bg-surface-container-low border rounded-xl py-3 px-4 text-sm placeholder:text-primary-navy/20", addErrors.amount ? "border-red-300" : "border-transparent")}
-                        />
-                        <div className="bg-surface-container-low rounded-xl py-3 px-3 text-sm font-bold text-primary-navy/60">{t('common.omr')}</div>
-                      </div>
-                      {addErrors.amount && <p className="text-red-500 text-xs">{addErrors.amount}</p>}
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold uppercase tracking-widest text-secondary-gold">{t('guests.attachReceipt')}</label>
-                      <label className="flex items-center gap-3 bg-surface-container-low border border-transparent rounded-xl py-3 px-4 cursor-pointer hover:border-secondary-gold/40 transition-colors">
-                        <Upload size={16} className="text-primary-navy/50 flex-shrink-0" />
-                        <span className="text-sm text-primary-navy/60 truncate flex-1">
-                          {receiptFileName || t('guests.chooseFile')}
-                        </span>
-                        {uploadProgress !== null && (
-                          <span className="text-[10px] font-bold text-secondary-gold">{uploadProgress}%</span>
-                        )}
-                        <input
-                          type="file"
-                          accept="image/*,.pdf"
-                          className="hidden"
-                          onChange={(e) => {
-                            const f = e.target.files?.[0];
-                            if (f) { setReceiptFile(f); setReceiptFileName(f.name); }
-                          }}
-                        />
-                      </label>
-                      {addErrors.receipt && <p className="text-red-500 text-xs">{addErrors.receipt}</p>}
-                    </div>
-                  </div>
-                )}
-
-                {paymentMode === 'free' && (
-                  <div className="bg-secondary-gold/10 border border-secondary-gold/30 rounded-xl p-3 flex items-start gap-2">
-                    <Gift size={14} className="text-secondary-gold mt-0.5 flex-shrink-0" />
-                    <p className="text-[11px] text-primary-navy/70 font-medium leading-relaxed">
-                      {t('guests.freeBookingNote')}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="p-6 border-t border-primary-navy/5 flex gap-3">
-              <button
-                onClick={() => { setShowAddModal(false); resetAddForm(); }}
-                className="flex-1 py-3 rounded-xl border border-primary-navy/20 font-bold text-xs uppercase tracking-widest text-primary-navy"
-              >
-                {t('common.cancel')}
-              </button>
-              <button
-                onClick={handleAddGuest}
-                disabled={addSubmitting}
-                className="flex-1 py-3 rounded-xl bg-primary-navy text-white font-bold text-xs uppercase tracking-widest shadow-lg disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                {addSubmitting ? (
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                ) : (
-                  <>
-                    <UserPlus size={14} />
-                    {t('guests.addGuest')}
-                  </>
-                )}
-              </button>
-            </div>
-          </motion.div>
-        </div>
-      )}
+      {/* Add Walk-in Guest Modal */}
+      <AddWalkInGuest
+        open={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        properties={properties}
+      />
     </div>
   );
 };

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { FileText, Receipt, Download, MessageCircle, X, Calendar, Building2, Edit3, Paperclip, IdCard } from 'lucide-react';
+import { FileText, Receipt, Download, MessageCircle, X, Calendar, Building2, Edit3, Paperclip, IdCard, AlertCircle, Home } from 'lucide-react';
 import { cn } from '@/src/lib/utils';
 import { collection, query, orderBy, onSnapshot, doc, getDoc, setDoc, limit } from 'firebase/firestore';
 import { db } from '../services/firebase';
@@ -25,12 +25,16 @@ interface RealtimeBooking {
   stayTotal?: number;
   depositAmount?: number;
   grandTotal?: number;
+  balance_due?: number;
+  deposit_paid?: boolean;
+  isManual?: boolean;
   status: string;
   payment_status: string;
   payment_method: string;
   receiptURL: string;
   idImageUrl?: string;
   slot_name?: string;
+  slot_name_ar?: string;
   created_at: string;
 }
 
@@ -314,10 +318,46 @@ export const Invoices: React.FC = () => {
                     "flex flex-col gap-3"
                   )}
                 >
-                  {/* Guest Name + Status Badge */}
+                  {/* Guest Name + Status Badge + Attachments */}
                   <div className="col-span-4">
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <p className="font-bold text-primary-navy text-sm">{b.guest_name}</p>
+                      {b.isManual && (
+                        <span
+                          title="Walk-in / manual entry"
+                          className="inline-flex items-center gap-1 bg-secondary-gold/15 text-secondary-gold px-1.5 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-widest"
+                        >
+                          <Home size={8} />
+                          Manual
+                        </span>
+                      )}
+                      {/* Guest ID thumbnail — shown next to the receipt icon so the
+                          admin can eyeball the attached document at a glance. */}
+                      {b.idImageUrl && !b.idImageUrl.toLowerCase().endsWith('.pdf') && (
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); setViewer({ url: b.idImageUrl!, kind: 'id' }); }}
+                          title="View guest ID"
+                          className="w-8 h-8 rounded-md overflow-hidden border border-primary-navy/10 hover:border-secondary-gold/60 transition-all active:scale-95"
+                        >
+                          <img
+                            src={b.idImageUrl}
+                            alt="Guest ID thumbnail"
+                            className="w-full h-full object-cover"
+                            referrerPolicy="no-referrer"
+                          />
+                        </button>
+                      )}
+                      {b.idImageUrl && b.idImageUrl.toLowerCase().endsWith('.pdf') && (
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); setViewer({ url: b.idImageUrl!, kind: 'id' }); }}
+                          title="View guest ID (PDF)"
+                          className="p-1 rounded-md text-secondary-gold hover:bg-secondary-gold/10 active:scale-90 transition-all"
+                        >
+                          <IdCard size={12} />
+                        </button>
+                      )}
                       {b.receiptURL && (
                         <button
                           type="button"
@@ -328,18 +368,8 @@ export const Invoices: React.FC = () => {
                           <Paperclip size={12} />
                         </button>
                       )}
-                      {b.idImageUrl && (
-                        <button
-                          type="button"
-                          onClick={(e) => { e.stopPropagation(); setViewer({ url: b.idImageUrl!, kind: 'id' }); }}
-                          title="View guest ID"
-                          className="p-1 rounded-md text-secondary-gold hover:bg-secondary-gold/10 active:scale-90 transition-all"
-                        >
-                          <IdCard size={12} />
-                        </button>
-                      )}
                     </div>
-                    <div className="flex items-center gap-2 mt-0.5">
+                    <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                       <span className={cn(
                         "text-[8px] font-bold uppercase px-2 py-0.5 rounded-full",
                         b.payment_status === 'free' ? "bg-secondary-gold/10 text-secondary-gold" :
@@ -348,6 +378,15 @@ export const Invoices: React.FC = () => {
                       )}>
                         {b.payment_status === 'free' ? 'free' : status}
                       </span>
+                      {b.deposit_paid === false && (Number(b.balance_due) > 0 || Number(b.depositAmount) > 0) && (
+                        <span
+                          title="Outstanding deposit to be collected on arrival"
+                          className="inline-flex items-center gap-1 text-[8px] font-bold uppercase px-2 py-0.5 rounded-full bg-red-50 text-red-600 border border-red-200"
+                        >
+                          <AlertCircle size={9} />
+                          Deposit Due on Arrival
+                        </span>
+                      )}
                       <span className="text-[10px] text-primary-navy/40 font-medium md:hidden">{b.property_name}</span>
                     </div>
                   </div>
@@ -546,7 +585,18 @@ export const Invoices: React.FC = () => {
                     <Receipt className="text-secondary-gold" size={20} />
                   </div>
                   <div>
-                    <p className="font-headline text-sm font-bold">Invoice #{selectedInvoice.id.slice(0, 8).toUpperCase()}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-headline text-sm font-bold">Invoice #{selectedInvoice.id.slice(0, 8).toUpperCase()}</p>
+                      {selectedBooking?.isManual && (
+                        <span
+                          title="Walk-in / manual entry"
+                          className="inline-flex items-center gap-1 bg-secondary-gold/15 text-secondary-gold px-1.5 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-widest"
+                        >
+                          <Home size={8} />
+                          Manual
+                        </span>
+                      )}
+                    </div>
                     <p className="text-[10px] text-primary-navy/50 uppercase tracking-widest font-bold">Guest Invoice</p>
                   </div>
                 </div>
@@ -596,6 +646,75 @@ export const Invoices: React.FC = () => {
                     </tr>
                   </tbody>
                 </table>
+
+                {/* Red notice: deposit still needs to be collected at check-in.
+                    Only shown when the admin explicitly recorded the deposit as
+                    unpaid on a walk-in booking. */}
+                {selectedBooking?.deposit_paid === false && Number(selectedBooking?.depositAmount || selectedBooking?.security_deposit || 0) > 0 && (
+                  <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
+                    <AlertCircle size={18} className="text-red-500 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="text-sm font-bold text-red-700">Deposit Due on Arrival</p>
+                      <p className="text-xs text-red-600/80 mt-0.5">
+                        Remaining balance of OMR{' '}
+                        {(Number(selectedBooking?.balance_due) || Number(selectedBooking?.depositAmount) || Number(selectedBooking?.security_deposit) || 0).toFixed(2)}{' '}
+                        to be collected at check-in.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Attachment strip — Guest ID thumbnail side-by-side with the
+                    payment receipt so the admin can verify both at a glance. */}
+                {(selectedBooking?.idImageUrl || selectedBooking?.receiptURL) && (
+                  <div className="pt-2">
+                    <p className="text-[10px] uppercase font-bold text-primary-navy/40 tracking-wider mb-2">Attachments</p>
+                    <div className="flex gap-3 flex-wrap">
+                      {selectedBooking?.idImageUrl && (
+                        <button
+                          type="button"
+                          onClick={() => setViewer({ url: selectedBooking.idImageUrl!, kind: 'id' })}
+                          className="flex flex-col items-center gap-1.5 group"
+                        >
+                          <div className="w-24 h-24 rounded-lg overflow-hidden border border-primary-navy/10 group-hover:border-secondary-gold/60 transition-all bg-surface-container-low flex items-center justify-center">
+                            {selectedBooking.idImageUrl.toLowerCase().endsWith('.pdf') ? (
+                              <IdCard size={32} className="text-primary-navy/40" />
+                            ) : (
+                              <img
+                                src={selectedBooking.idImageUrl}
+                                alt="Guest ID"
+                                className="w-full h-full object-cover"
+                                referrerPolicy="no-referrer"
+                              />
+                            )}
+                          </div>
+                          <span className="text-[10px] font-bold uppercase tracking-widest text-primary-navy/50 group-hover:text-secondary-gold transition-colors">Guest ID</span>
+                        </button>
+                      )}
+                      {selectedBooking?.receiptURL && (
+                        <button
+                          type="button"
+                          onClick={() => setViewer({ url: selectedBooking.receiptURL, kind: 'receipt' })}
+                          className="flex flex-col items-center gap-1.5 group"
+                        >
+                          <div className="w-24 h-24 rounded-lg overflow-hidden border border-primary-navy/10 group-hover:border-secondary-gold/60 transition-all bg-surface-container-low flex items-center justify-center">
+                            {selectedBooking.receiptURL.toLowerCase().endsWith('.pdf') ? (
+                              <Paperclip size={32} className="text-primary-navy/40" />
+                            ) : (
+                              <img
+                                src={selectedBooking.receiptURL}
+                                alt="Payment Receipt"
+                                className="w-full h-full object-cover"
+                                referrerPolicy="no-referrer"
+                              />
+                            )}
+                          </div>
+                          <span className="text-[10px] font-bold uppercase tracking-widest text-primary-navy/50 group-hover:text-secondary-gold transition-colors">Receipt</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Modal Actions */}
