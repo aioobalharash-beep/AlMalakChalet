@@ -55,13 +55,9 @@ export const Booking: React.FC = () => {
   // Booked NIGHTS (fully occupied) from Firestore (real-time).
   // A night = one calendar day on which a guest is sleeping at the property.
   // For an overnight booking [check_in, check_out), only the nights in between
-  // are blocked — the check_out day itself is a "turnover day" (cleaned between
-  // 10/11 AM and the next 2 PM arrival) and remains selectable.
+  // are blocked — the check_out day itself becomes a normal available day
+  // (morning cleanup wraps well before the 2 PM arrival window).
   const [bookedDates, setBookedDates] = useState<Set<string>>(new Set());
-  // Check-out days of existing overnight bookings. These are still bookable
-  // (as a check-in or a day-use) but get a distinct visual hint so guests see
-  // that the chalet turns over that morning.
-  const [turnoverDates, setTurnoverDates] = useState<Set<string>>(new Set());
   // Becomes true after the first bookings snapshot resolves so auto-select
   // waits for the authoritative list before defaulting the calendar range.
   const [bookedDatesLoaded, setBookedDatesLoaded] = useState(false);
@@ -105,20 +101,16 @@ export const Booking: React.FC = () => {
 
   // Real-time listener for existing bookings to prevent double-booking.
   //
-  // Each booking contributes to up to three buckets:
-  //   • bookedNights — calendar days the chalet is fully occupied (the nights
-  //     someone is sleeping there). These block both check-in and check-out
-  //     selection for new stays, and block day-use.
-  //   • turnoverDays — the check_out day of an overnight stay. The chalet is
-  //     occupied only until 10/11 AM; after that it is cleaned and available
-  //     for the next 2 PM arrival, so this date stays selectable but is
-  //     flagged visually.
+  // A date is blocked iff a guest is occupying the chalet from the 2 PM arrival
+  // window onwards (i.e. it is a NIGHT someone is sleeping there). The morning
+  // after an overnight stay is NOT blocked — check-out is at 10/11 AM, so the
+  // 2 PM arrival slot is always free for the next guest. Each booking contributes:
+  //   • bookedNights — the nights the guest sleeps at the property.
   //   • slotMap — slot-based day-use bookings that only block a single slot.
   useEffect(() => {
     const q = query(collection(db, 'bookings'), orderBy('created_at', 'desc'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const bookedNights = new Set<string>();
-      const turnovers = new Set<string>();
       const slotMap = new Map<string, string[]>();
 
       snapshot.docs.forEach(d => {
@@ -136,8 +128,9 @@ export const Booking: React.FC = () => {
           // Full-day day-use with no slot → block the whole day as a night
           bookedNights.add(data.check_in);
         } else {
-          // Overnight stay. Nights run [check_in, check_out) — the check_out
-          // day is a turnover, NOT a blocked night.
+          // Overnight stay. Nights run [check_in, check_out). The check_out
+          // day itself stays available — morning cleanup finishes before the
+          // next 2 PM arrival.
           const checkIn = parseLocalDate(data.check_in);
           const checkOut = parseLocalDate(data.check_out);
           const cursor = new Date(checkIn);
@@ -145,11 +138,9 @@ export const Booking: React.FC = () => {
             bookedNights.add(formatLocalDate(cursor));
             cursor.setDate(cursor.getDate() + 1);
           }
-          turnovers.add(formatLocalDate(checkOut));
         }
       });
       setBookedDates(bookedNights);
-      setTurnoverDates(turnovers);
       setBookedSlots(slotMap);
       setBookedDatesLoaded(true);
     });
@@ -910,18 +901,16 @@ export const Booking: React.FC = () => {
                 {Array.from({ length: firstDay }).map((_, i) => <div key={`empty-${i}`} />)}
                 {Array.from({ length: daysInMonth }).map((_, i) => {
                   const day = i + 1;
-                  const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                   const dateObj = new Date(currentYear, currentMonth, day);
                   const isPast = dateObj < today;
                   const isBooked = isDayBooked(day);
-                  const isTurnover = turnoverDates.has(dateStr) && !isBooked;
                   const isStart = selectedDates.start === day;
                   const isEnd = selectedDates.end === day;
                   const isSelected = isStart || isEnd;
                   const isInRange = selectedDates.start && selectedDates.end && day > selectedDates.start && day < selectedDates.end;
 
-                  // In check-out mode: also grey out any day <= check-in and
-                  // any day that would create a range crossing a booked night.
+                  // In check-out mode: grey out any day <= check-in and any
+                  // day that would create a range crossing a booked night.
                   let disabledForMode = false;
                   if (pickerMode === 'check_out' && selectedDates.start !== null) {
                     if (day <= selectedDates.start) disabledForMode = true;
@@ -939,7 +928,6 @@ export const Booking: React.FC = () => {
                         isUnavailable ? "cursor-not-allowed" : "cursor-pointer hover:bg-primary-navy/5",
                         isPast && !isBooked && "text-primary-navy/20",
                         isBooked && "bg-red-50 text-red-300 line-through",
-                        !isBooked && isTurnover && !isSelected && "bg-amber-50 text-amber-700",
                         disabledForMode && !isBooked && !isPast && "text-primary-navy/20",
                         isSelected && !isPast && !isBooked && "bg-primary-navy text-white font-bold",
                         isInRange && !isUnavailable && "bg-primary-navy/5 text-primary-navy"
@@ -952,14 +940,10 @@ export const Booking: React.FC = () => {
               </div>
 
               {/* Legend */}
-              <div className="mt-4 flex items-center gap-3 flex-wrap justify-center">
+              <div className="mt-4 flex items-center gap-4 justify-center">
                 <div className="flex items-center gap-1.5">
                   <span className="w-2.5 h-2.5 rounded bg-red-50 border border-red-200"></span>
                   <span className="text-[9px] font-bold uppercase text-primary-navy/40">{t('booking.legendBooked')}</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded bg-amber-50 border border-amber-200"></span>
-                  <span className="text-[9px] font-bold uppercase text-primary-navy/40">{t('booking.legendTurnover')}</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <span className="w-2.5 h-2.5 rounded bg-primary-navy"></span>
