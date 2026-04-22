@@ -281,6 +281,65 @@ export function formatBreakdown(
   return `${b.nights} Night${b.nights > 1 ? 's' : ''}`;
 }
 
+// ── Check-in / Check-out timing engine ──────────────────────────────────────
+//
+// Al Malak operates on a weekday/weekend schedule:
+//   Sun–Wed : day use ends 10 PM, overnight check-out 10 AM
+//   Thu–Sat : day use ends 11 PM, overnight check-out 11 AM
+// Check-in is always 2 PM. The rules key off the DAY THE GUEST LEAVES
+// (same day for day-use, next day for overnight) so the calendar can surface
+// accurate times the moment the guest picks dates.
+
+export interface StayTimes {
+  /** 24h start time, always "14:00" */
+  checkInTime: string;
+  /** 24h end time — "22:00"/"23:00" for day-use, "10:00"/"11:00" for overnight */
+  checkOutTime: string;
+  /** Localised check-in label (e.g. "2:00 PM") */
+  checkInLabel: string;
+  /** Localised check-out label */
+  checkOutLabel: string;
+  /** true if check-out is the calendar day after check-in */
+  isOvernight: boolean;
+}
+
+/** Days Thu(4)–Sat(6) get the late (11 PM / 11 AM) schedule. */
+function isLateScheduleDay(dow: number): boolean {
+  return dow === 4 || dow === 5 || dow === 6;
+}
+
+/** Day-use times for a single-day stay on `date`. */
+export function getDayUseTimes(date: Date, lang = 'en'): StayTimes {
+  const dow = date.getDay();
+  const checkInTime = '14:00';
+  const checkOutTime = isLateScheduleDay(dow) ? '23:00' : '22:00';
+  return {
+    checkInTime,
+    checkOutTime,
+    checkInLabel: formatTime(checkInTime, lang),
+    checkOutLabel: formatTime(checkOutTime, lang),
+    isOvernight: false,
+  };
+}
+
+/**
+ * Overnight times. `checkOutDate` is the calendar day the guest LEAVES — that
+ * day's weekday determines the 10/11 AM cut-off so a booking that ends on a
+ * Thursday gets the 11 AM grace window.
+ */
+export function getNightStayTimes(checkOutDate: Date, lang = 'en'): StayTimes {
+  const dow = checkOutDate.getDay();
+  const checkInTime = '14:00';
+  const checkOutTime = isLateScheduleDay(dow) ? '11:00' : '10:00';
+  return {
+    checkInTime,
+    checkOutTime,
+    checkInLabel: formatTime(checkInTime, lang),
+    checkOutLabel: formatTime(checkOutTime, lang),
+    isOvernight: true,
+  };
+}
+
 /** Migrate legacy 4-rate pricing to 7-day format */
 export function migratePricing(raw: any): PricingSettings {
   // If already has sunday_rate, it's the new format

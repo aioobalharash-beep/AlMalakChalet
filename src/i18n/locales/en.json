@@ -213,7 +213,17 @@
     "referenceLabel": "Reference:",
     "referencePhoneNumber": "Your phone number",
     "receiptUploaded": "Receipt uploaded",
-    "uploadReceiptForApproval": "Upload receipt for approval"
+    "uploadReceiptForApproval": "Upload receipt for approval",
+    "datesHeading": "Your Stay",
+    "checkInCard": "Check-in",
+    "checkOutCard": "Check-out",
+    "checkOutCardSameDay": "Check-out (Same Day)",
+    "selectDate": "Select date",
+    "pickCheckIn": "Choose Check-in Date",
+    "pickCheckOut": "Choose Check-out Date",
+    "stayTimingDay": "Day Use Hours",
+    "stayTimingNight": "Stay Schedule",
+    "nextDay": "next day"
   },
   "sanctuary": {
     "estatePreview": "Estate Preview",

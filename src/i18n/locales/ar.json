@@ -213,7 +213,17 @@
     "referenceLabel": "المرجع:",
     "referencePhoneNumber": "رقم هاتفك",
     "receiptUploaded": "تم رفع الإيصال",
-    "uploadReceiptForApproval": "ارفع الإيصال للموافقة"
+    "uploadReceiptForApproval": "ارفع الإيصال للموافقة",
+    "datesHeading": "إقامتك",
+    "checkInCard": "الدخول",
+    "checkOutCard": "الخروج",
+    "checkOutCardSameDay": "الخروج (نفس اليوم)",
+    "selectDate": "اختر التاريخ",
+    "pickCheckIn": "اختر تاريخ الدخول",
+    "pickCheckOut": "اختر تاريخ الخروج",
+    "stayTimingDay": "ساعات الحجز اليومي",
+    "stayTimingNight": "جدول الإقامة",
+    "nextDay": "اليوم التالي"
   },
   "sanctuary": {
     "estatePreview": "معاينة العقار",

@@ -9,7 +9,7 @@ import { uploadToCloudinary } from '../services/cloudinary';
 import { sendWhatsAppInvoice } from './Invoices';
 import { collection, query, orderBy, onSnapshot, doc, getDoc } from 'firebase/firestore';
 import { db } from '../services/firebase';
-import { calculateTotalPrice, formatBreakdown, migratePricing, formatTime, getSlotRateForDay, formatLocalDate, parseLocalDate, type PricingSettings, type PriceBreakdown, type DayUseSlot } from '../services/pricingUtils';
+import { calculateTotalPrice, formatBreakdown, migratePricing, formatTime, getSlotRateForDay, formatLocalDate, parseLocalDate, getDayUseTimes, getNightStayTimes, type PricingSettings, type PriceBreakdown, type DayUseSlot } from '../services/pricingUtils';
 import type { Property } from '../types';
 import { useTranslation } from 'react-i18next';
 import { bl } from '../utils/bilingual';
@@ -52,11 +52,19 @@ export const Booking: React.FC = () => {
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
 
-  // Booked dates from Firestore (real-time)
+  // Booked NIGHTS (fully occupied) from Firestore (real-time).
+  // A night = one calendar day on which a guest is sleeping at the property.
+  // For an overnight booking [check_in, check_out), only the nights in between
+  // are blocked — the check_out day itself becomes a normal available day
+  // (morning cleanup wraps well before the 2 PM arrival window).
   const [bookedDates, setBookedDates] = useState<Set<string>>(new Set());
   // Becomes true after the first bookings snapshot resolves so auto-select
   // waits for the authoritative list before defaulting the calendar range.
   const [bookedDatesLoaded, setBookedDatesLoaded] = useState(false);
+
+  // Check-in / Check-out picker state. The calendar is only shown when one
+  // of the two cards is active; picking a date collapses it automatically.
+  const [pickerMode, setPickerMode] = useState<'check_in' | 'check_out' | null>(null);
 
   // Maintenance mode — blocks all bookings when admin toggles off
   const [maintenanceMode, setMaintenanceMode] = useState(false);
@@ -91,11 +99,18 @@ export const Booking: React.FC = () => {
       .finally(() => setLoading(false));
   }, []);
 
-  // Real-time listener for existing bookings to prevent double-booking
+  // Real-time listener for existing bookings to prevent double-booking.
+  //
+  // A date is blocked iff a guest is occupying the chalet from the 2 PM arrival
+  // window onwards (i.e. it is a NIGHT someone is sleeping there). The morning
+  // after an overnight stay is NOT blocked — check-out is at 10/11 AM, so the
+  // 2 PM arrival slot is always free for the next guest. Each booking contributes:
+  //   • bookedNights — the nights the guest sleeps at the property.
+  //   • slotMap — slot-based day-use bookings that only block a single slot.
   useEffect(() => {
     const q = query(collection(db, 'bookings'), orderBy('created_at', 'desc'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const dates = new Set<string>();
+      const bookedNights = new Set<string>();
       const slotMap = new Map<string, string[]>();
 
       snapshot.docs.forEach(d => {
@@ -109,18 +124,23 @@ export const Booking: React.FC = () => {
           const existing = slotMap.get(data.check_in) || [];
           existing.push(data.slot_id);
           slotMap.set(data.check_in, existing);
+        } else if (bIsDayUse) {
+          // Full-day day-use with no slot → block the whole day as a night
+          bookedNights.add(data.check_in);
         } else {
-          // Overnight or non-slot day-use: block entire days
-          const checkIn = new Date(data.check_in);
-          const checkOut = new Date(data.check_out);
+          // Overnight stay. Nights run [check_in, check_out). The check_out
+          // day itself stays available — morning cleanup finishes before the
+          // next 2 PM arrival.
+          const checkIn = parseLocalDate(data.check_in);
+          const checkOut = parseLocalDate(data.check_out);
           const cursor = new Date(checkIn);
-          while (cursor <= checkOut) {
-            dates.add(cursor.toISOString().split('T')[0]);
+          while (cursor < checkOut) {
+            bookedNights.add(formatLocalDate(cursor));
             cursor.setDate(cursor.getDate() + 1);
           }
         }
       });
-      setBookedDates(dates);
+      setBookedDates(bookedNights);
       setBookedSlots(slotMap);
       setBookedDatesLoaded(true);
     });
@@ -203,10 +223,11 @@ export const Booking: React.FC = () => {
     return false;
   };
 
-  // Find the first available consecutive pair (D, D+1) starting from today,
-  // skipping any day present in bookedDates. Restricted to same-month pairs
-  // because the calendar selection model is scoped to the active month.
-  // Shared between Night Stay and Event since both need a 2-day default range.
+  // Find the first available consecutive pair (D, D+1) starting from today
+  // where night D is not already booked. D+1 is the check-out day and only
+  // needs to clear the night-D check — a turnover on D+1 is fine. Restricted
+  // to same-month pairs because the calendar selection model is scoped to
+  // the active month. Shared between Night Stay and Event.
   const findNextAvailableRangePair = useCallback((): { start: Date; end: Date } | null => {
     const from = new Date();
     from.setHours(0, 0, 0, 0);
@@ -217,10 +238,9 @@ export const Booking: React.FC = () => {
       const end = new Date(start);
       end.setDate(start.getDate() + 1);
 
-      // Cross-month pairs can't be expressed in the current selectedDates shape.
       if (start.getMonth() !== end.getMonth()) continue;
 
-      if (!bookedDates.has(formatLocalDate(start)) && !bookedDates.has(formatLocalDate(end))) {
+      if (!bookedDates.has(formatLocalDate(start))) {
         return { start, end };
       }
     }
@@ -249,45 +269,61 @@ export const Booking: React.FC = () => {
     applyAutoRangeSelect();
   }, [stayType, bookedDatesLoaded, selectedDates.start, selectedDates.end, applyAutoRangeSelect]);
 
+  // Check whether every night in [startDay, endDayExclusive - 1] of the active
+  // month is free. For a new night stay check_in=S → check_out=E the nights
+  // the guest will sleep are [S, E-1] so we stop one short of the check-out
+  // day (which may legitimately be a turnover day).
+  const nightsRangeIsClear = (startDay: number, endDayExclusive: number): boolean => {
+    for (let d = startDay; d < endDayExclusive; d++) {
+      const key = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      if (bookedDates.has(key)) return false;
+    }
+    return true;
+  };
+
   const handleDayClick = (day: number) => {
     const clickedDate = new Date(currentYear, currentMonth, day);
     if (clickedDate < today) return;
     if (isDayBooked(day)) return;
     setSelectedSlot(null);
 
-    // Day Use is always single-day. Event + Night Stay both support multi-day ranges.
+    // Day Use is always single-day. Picking auto-closes the picker.
     if (stayType === 'day_use') {
       setSelectedDates({ start: day, end: day });
       setErrors(prev => ({ ...prev, dates: '' }));
+      setPickerMode(null);
       return;
     }
 
-    if (!selectedDates.start || (selectedDates.start && selectedDates.end)) {
-      setSelectedDates({ start: day, end: null });
-    } else if (day === selectedDates.start) {
-      // Same day clicked twice → Day Use
-      setSelectedDates({ start: day, end: day });
-    } else {
-      // Check if any day in the range is booked
-      const rangeStart = Math.min(day, selectedDates.start);
-      const rangeEnd = Math.max(day, selectedDates.start);
-      let hasConflict = false;
-      for (let d = rangeStart; d <= rangeEnd; d++) {
-        if (isDayBooked(d)) { hasConflict = true; break; }
-      }
-      if (hasConflict) {
-        setErrors(prev => ({ ...prev, dates: 'Selected range includes unavailable dates' }));
+    // Night Stay / Event — routed by which card opened the calendar.
+    if (pickerMode === 'check_out' && selectedDates.start !== null) {
+      if (day <= selectedDates.start) {
+        // Clicking on or before the check-in while picking check-out is
+        // treated as "change my mind about check-in" — restart the flow.
         setSelectedDates({ start: day, end: null });
+        setErrors(prev => ({ ...prev, dates: '' }));
+        setPickerMode('check_out');
         return;
       }
-
-      if (day > selectedDates.start) {
-        setSelectedDates({ ...selectedDates, end: day });
-      } else {
-        setSelectedDates({ start: day, end: selectedDates.start });
+      if (!nightsRangeIsClear(selectedDates.start, day)) {
+        setErrors(prev => ({ ...prev, dates: t('booking.selectedRange') }));
+        return;
       }
+      setSelectedDates(prev => ({ ...prev, end: day }));
+      setErrors(prev => ({ ...prev, dates: '' }));
+      setPickerMode(null);
+      return;
     }
+
+    // pickerMode === 'check_in' (or null fallback): pick the arrival date.
+    // If an end was previously set but no longer sits after the new start,
+    // reset it so the guest explicitly picks a new check-out next.
+    setSelectedDates(prev => {
+      const keepEnd = prev.end !== null && prev.end > day && nightsRangeIsClear(day, prev.end);
+      return { start: day, end: keepEnd ? prev.end : null };
+    });
     setErrors(prev => ({ ...prev, dates: '' }));
+    setPickerMode(null);
   };
 
   const isEvent = stayType === 'event';
@@ -359,6 +395,33 @@ export const Booking: React.FC = () => {
   const depositAmount = Number(securityDeposit) || 0;
   // Deposit is collected at check-in, not upfront. Grand Total = stay only.
   const grandTotal = stayTotal;
+
+  // Resolve Check-in / Check-out wall-clock times from the timing engine.
+  // Day use pivots on the selected day; night stay / event pivot on the
+  // check-out day (the day the guest actually leaves).
+  const stayTimes = (() => {
+    if (selectedDates.start === null) return null;
+    if (isDayUse) {
+      const d = new Date(currentYear, currentMonth, selectedDates.start);
+      return getDayUseTimes(d, lang);
+    }
+    if (selectedDates.end === null) return null;
+    const checkOutDate = new Date(currentYear, currentMonth, selectedDates.end);
+    return getNightStayTimes(checkOutDate, lang);
+  })();
+
+  // Short "27 Apr" style labels for the two cards.
+  const cardDateFormatter = new Intl.DateTimeFormat(lang === 'ar' ? 'ar-OM' : 'en-GB', {
+    day: 'numeric',
+    month: 'short',
+    weekday: 'short',
+  });
+  const checkInCardLabel = selectedDates.start !== null
+    ? cardDateFormatter.format(new Date(currentYear, currentMonth, selectedDates.start))
+    : null;
+  const checkOutCardLabel = selectedDates.end !== null
+    ? cardDateFormatter.format(new Date(currentYear, currentMonth, selectedDates.end))
+    : null;
 
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -600,6 +663,9 @@ export const Booking: React.FC = () => {
     }
   };
 
+  // Month navigation intentionally keeps the current selection. Clearing the
+  // dates here would make the Check-out picker wipe the Check-in as soon as
+  // the guest paged forward a month.
   const prevMonth = () => {
     if (currentMonth === 0) {
       setCurrentMonth(11);
@@ -607,7 +673,6 @@ export const Booking: React.FC = () => {
     } else {
       setCurrentMonth(currentMonth - 1);
     }
-    setSelectedDates({ start: null, end: null });
   };
 
   const nextMonth = () => {
@@ -617,7 +682,6 @@ export const Booking: React.FC = () => {
     } else {
       setCurrentMonth(currentMonth + 1);
     }
-    setSelectedDates({ start: null, end: null });
   };
 
   if (loading) return <div className="p-8 animate-pulse"><div className="h-96 bg-primary-navy/5 rounded-xl" /></div>;
@@ -690,6 +754,7 @@ export const Booking: React.FC = () => {
               onClick={() => {
                 setStayType(opt.value);
                 setSelectedSlot(null);
+                setPickerMode(null);
                 if (opt.value === 'day_use') {
                   setSelectedDates(prev => prev.start !== null ? { start: prev.start, end: prev.start } : prev);
                   return;
@@ -730,84 +795,165 @@ export const Booking: React.FC = () => {
         </div>
       </section>
 
-      {/* Calendar Card */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-white rounded-[24px] p-6 shadow-sm border border-primary-navy/5"
-      >
-        <div className="flex justify-between items-center mb-8">
-          <h3 className="font-headline text-lg font-bold">{monthName}</h3>
-          <div className="flex gap-4">
-            <button onClick={prevMonth}><ChevronLeft size={20} className="text-primary-navy/40 hover:text-primary-navy" /></button>
-            <button onClick={nextMonth}><ChevronRight size={20} className="text-primary-navy hover:text-primary-navy/60" /></button>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-7 gap-y-4 text-center text-[10px] font-bold text-primary-navy/30 uppercase tracking-tighter mb-4">
-          {['daysSun', 'daysMon', 'daysTue', 'daysWed', 'daysThu', 'daysFri', 'daysSat'].map(d => <div key={d}>{t(`booking.${d}`)}</div>)}
-        </div>
-
-        <div className="grid grid-cols-7 gap-y-2 text-center text-sm font-medium">
-          {Array.from({ length: firstDay }).map((_, i) => <div key={`empty-${i}`} />)}
-          {Array.from({ length: daysInMonth }).map((_, i) => {
-            const day = i + 1;
-            const dateObj = new Date(currentYear, currentMonth, day);
-            const isPast = dateObj < today;
-            const isBooked = isDayBooked(day);
-            const isUnavailable = isPast || isBooked || maintenanceMode;
-            const isStart = selectedDates.start === day;
-            const isEnd = selectedDates.end === day;
-            const isSelected = isStart || isEnd;
-            const isInRange = selectedDates.start && selectedDates.end && day > selectedDates.start && day < selectedDates.end;
-
+      {/* Check-in / Check-out Cards */}
+      <section className="space-y-3">
+        <label className="text-[10px] font-bold uppercase tracking-widest text-secondary-gold">
+          {t('booking.datesHeading')} *
+        </label>
+        <div className="grid grid-cols-2 gap-3">
+          {([
+            {
+              mode: 'check_in' as const,
+              title: t('booking.checkInCard'),
+              valueLabel: checkInCardLabel,
+              timeLabel: stayTimes?.checkInLabel,
+              disabled: false,
+            },
+            {
+              mode: 'check_out' as const,
+              title: isDayUse ? t('booking.checkOutCardSameDay') : t('booking.checkOutCard'),
+              valueLabel: isDayUse ? checkInCardLabel : checkOutCardLabel,
+              timeLabel: stayTimes?.checkOutLabel,
+              // Day-use auto-mirrors check-in → no separate picker needed.
+              // Night/event check-out requires a check-in first.
+              disabled: isDayUse || selectedDates.start === null,
+            },
+          ]).map(card => {
+            const active = pickerMode === card.mode;
+            const hasValue = !!card.valueLabel;
             return (
-              <div
-                key={day}
-                onClick={() => !isUnavailable && handleDayClick(day)}
+              <button
+                key={card.mode}
+                type="button"
+                disabled={card.disabled}
+                onClick={() => setPickerMode(active ? null : card.mode)}
                 className={cn(
-                  "py-2 rounded-lg transition-all relative",
-                  isUnavailable ? "cursor-not-allowed" : "cursor-pointer hover:bg-primary-navy/5",
-                  isPast && !isBooked && "text-primary-navy/20",
-                  isBooked && "bg-red-50 text-red-300 line-through",
-                  isSelected && !isUnavailable && "bg-primary-navy text-white font-bold",
-                  isInRange && !isUnavailable && "bg-primary-navy/5 text-primary-navy"
+                  "relative p-4 rounded-[18px] border-2 transition-all text-start min-h-[96px] flex flex-col justify-between",
+                  active
+                    ? "border-primary-navy bg-primary-navy/5 shadow-sm"
+                    : hasValue
+                      ? "border-primary-navy/20 bg-white"
+                      : "border-primary-navy/10 bg-white hover:border-primary-navy/20",
+                  card.disabled && "opacity-50 cursor-not-allowed"
                 )}
               >
-                {day}
-              </div>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-primary-navy/50">
+                  {card.title}
+                </p>
+                <div className="space-y-1">
+                  <p className={cn(
+                    "font-headline text-lg font-bold leading-tight",
+                    hasValue ? "text-primary-navy" : "text-primary-navy/30"
+                  )}>
+                    {card.valueLabel || t('booking.selectDate')}
+                  </p>
+                  {hasValue && card.timeLabel && (
+                    <p className="text-[11px] font-bold text-secondary-gold">
+                      {card.timeLabel}
+                    </p>
+                  )}
+                </div>
+              </button>
             );
           })}
         </div>
+        {errors.dates && <p className="text-red-500 text-xs font-medium">{errors.dates}</p>}
+      </section>
 
-        {/* Legend */}
-        <div className="mt-4 flex items-center gap-4 justify-center">
-          <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded bg-red-50 border border-red-200"></span>
-            <span className="text-[9px] font-bold uppercase text-primary-navy/40">{t('booking.legendBooked')}</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded bg-primary-navy"></span>
-            <span className="text-[9px] font-bold uppercase text-primary-navy/40">{t('booking.legendSelected')}</span>
-          </div>
-        </div>
+      {/* Calendar — only rendered when a card is active */}
+      <AnimatePresence initial={false}>
+        {pickerMode !== null && (
+          <motion.div
+            key="calendar"
+            initial={{ opacity: 0, y: -10, height: 0 }}
+            animate={{ opacity: 1, y: 0, height: 'auto' }}
+            exit={{ opacity: 0, y: -10, height: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <div className="bg-white rounded-[24px] p-6 shadow-sm border border-primary-navy/5">
+              <div className="flex justify-between items-center mb-4">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-secondary-gold">
+                  {pickerMode === 'check_in' ? t('booking.pickCheckIn') : t('booking.pickCheckOut')}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setPickerMode(null)}
+                  className="p-1.5 hover:bg-primary-navy/5 rounded-full"
+                >
+                  <X size={14} className="text-primary-navy/40" />
+                </button>
+              </div>
 
-        {errors.dates && <p className="text-red-500 text-xs mt-4 font-medium">{errors.dates}</p>}
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="font-headline text-lg font-bold">{monthName}</h3>
+                <div className="flex gap-4">
+                  <button type="button" onClick={prevMonth}><ChevronLeft size={20} className="text-primary-navy/40 hover:text-primary-navy" /></button>
+                  <button type="button" onClick={nextMonth}><ChevronRight size={20} className="text-primary-navy hover:text-primary-navy/60" /></button>
+                </div>
+              </div>
 
-        {selectedDates.start !== null && (
-          <div className="mt-4 text-xs text-primary-navy/60 text-center">
-            {selectedDates.end !== null
-              ? isDayUse
-                ? selectedSlot
-                  ? `${selectedDates.start} ${monthName.split(' ')[0]} — ${lang === 'ar' && selectedSlot.name_ar ? selectedSlot.name_ar : selectedSlot.name} (${formatTime(selectedSlot.start_time, lang)} – ${formatTime(selectedSlot.end_time, lang)})`
-                  : dayUseSlots.length > 0
-                    ? `${selectedDates.start} ${monthName.split(' ')[0]} (${t('booking.selectSlotBelow')})`
-                    : `${selectedDates.start} ${monthName.split(' ')[0]} (${t('common.dayUse')})`
-                : `${selectedDates.start} - ${selectedDates.end} ${monthName.split(' ')[0]} (${nights} ${t(nights > 1 ? 'common.nights' : 'common.night')})`
-              : t('booking.tapAgainDayUse')}
-          </div>
+              <div className="grid grid-cols-7 gap-y-4 text-center text-[10px] font-bold text-primary-navy/30 uppercase tracking-tighter mb-4">
+                {['daysSun', 'daysMon', 'daysTue', 'daysWed', 'daysThu', 'daysFri', 'daysSat'].map(d => <div key={d}>{t(`booking.${d}`)}</div>)}
+              </div>
+
+              <div className="grid grid-cols-7 gap-y-2 text-center text-sm font-medium">
+                {Array.from({ length: firstDay }).map((_, i) => <div key={`empty-${i}`} />)}
+                {Array.from({ length: daysInMonth }).map((_, i) => {
+                  const day = i + 1;
+                  const dateObj = new Date(currentYear, currentMonth, day);
+                  const isPast = dateObj < today;
+                  const isBooked = isDayBooked(day);
+                  const isStart = selectedDates.start === day;
+                  const isEnd = selectedDates.end === day;
+                  const isSelected = isStart || isEnd;
+                  const isInRange = selectedDates.start && selectedDates.end && day > selectedDates.start && day < selectedDates.end;
+
+                  // In check-out mode: grey out any day <= check-in and any
+                  // day that would create a range crossing a booked night.
+                  let disabledForMode = false;
+                  if (pickerMode === 'check_out' && selectedDates.start !== null) {
+                    if (day <= selectedDates.start) disabledForMode = true;
+                    else if (!nightsRangeIsClear(selectedDates.start, day)) disabledForMode = true;
+                  }
+
+                  const isUnavailable = isPast || isBooked || maintenanceMode || disabledForMode;
+
+                  return (
+                    <div
+                      key={day}
+                      onClick={() => !isUnavailable && handleDayClick(day)}
+                      className={cn(
+                        "py-2 rounded-lg transition-all relative",
+                        isUnavailable ? "cursor-not-allowed" : "cursor-pointer hover:bg-primary-navy/5",
+                        isPast && !isBooked && "text-primary-navy/20",
+                        isBooked && "bg-red-50 text-red-300 line-through",
+                        disabledForMode && !isBooked && !isPast && "text-primary-navy/20",
+                        isSelected && !isPast && !isBooked && "bg-primary-navy text-white font-bold",
+                        isInRange && !isUnavailable && "bg-primary-navy/5 text-primary-navy"
+                      )}
+                    >
+                      {day}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Legend */}
+              <div className="mt-4 flex items-center gap-4 justify-center">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded bg-red-50 border border-red-200"></span>
+                  <span className="text-[9px] font-bold uppercase text-primary-navy/40">{t('booking.legendBooked')}</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded bg-primary-navy"></span>
+                  <span className="text-[9px] font-bold uppercase text-primary-navy/40">{t('booking.legendSelected')}</span>
+                </div>
+              </div>
+            </div>
+          </motion.div>
         )}
-      </motion.div>
+      </AnimatePresence>
 
       {/* Day-Use Time Slot Selection */}
       {isDayUse && dayUseSlots.length > 0 && (
@@ -927,6 +1073,38 @@ export const Booking: React.FC = () => {
               </div>
             )}
           </div>
+
+          {/* Check-in / Check-out times — dynamic per stay type & weekday */}
+          {stayTimes && (
+            <div className="rounded-[16px] border border-secondary-gold/30 bg-secondary-gold/5 p-4 space-y-2">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-secondary-gold text-center">
+                {stayTimes.isOvernight ? t('booking.stayTimingNight') : t('booking.stayTimingDay')}
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="text-center">
+                  <p className="text-[9px] font-bold uppercase tracking-widest text-primary-navy/50">
+                    {t('booking.checkInCard')}
+                  </p>
+                  <p className="font-headline text-base font-bold text-primary-navy mt-1">
+                    {stayTimes.checkInLabel}
+                  </p>
+                </div>
+                <div className="text-center border-s border-primary-navy/10">
+                  <p className="text-[9px] font-bold uppercase tracking-widest text-primary-navy/50">
+                    {t('booking.checkOutCard')}
+                    {stayTimes.isOvernight && (
+                      <span className="ms-1 text-primary-navy/30 normal-case tracking-normal">
+                        ({t('booking.nextDay')})
+                      </span>
+                    )}
+                  </p>
+                  <p className="font-headline text-base font-bold text-primary-navy mt-1">
+                    {stayTimes.checkOutLabel}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="pt-4 border-t border-primary-navy/5 flex justify-between items-end">
             <p className="text-xl font-bold font-headline">{t('booking.grandTotal')}</p>
