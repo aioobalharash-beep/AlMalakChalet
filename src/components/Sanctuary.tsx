@@ -68,9 +68,15 @@ const getMinPrice = (pricing: PricingSettings | undefined, fallback: number): nu
   return minRate;
 };
 
+interface FeatureItem {
+  en: string;
+  ar: string;
+}
+
 interface FeatureSection {
-  title: string;
-  items: string[];
+  titleEn: string;
+  titleAr: string;
+  items: FeatureItem[];
 }
 
 interface PropertyDetails {
@@ -275,39 +281,35 @@ export const Sanctuary: React.FC = () => {
       </section>
 
       {/* Resort Guide — Categorized Feature Tiles */}
-      <section className="px-6">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {[
-            {
-              title: t('sanctuary.overview'),
-              items: [
-                `${data.capacity} ${t('common.guests')}`,
-                `${data.area_sqm} m²`,
-              ],
-            },
-            ...(data.featureSections || []),
-          ].map((section, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.04 }}
-              className="bg-white p-4 rounded-2xl border border-primary-navy/5 shadow-sm"
-            >
-              <h4 className="text-[10px] font-bold text-secondary-gold uppercase tracking-widest mb-2">
-                {section.title}
-              </h4>
-              <ul className="space-y-1">
-                {section.items.map((item, j) => (
-                  <li key={j} className="text-xs font-bold text-primary-navy/80 leading-snug">
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </motion.div>
-          ))}
-        </div>
-      </section>
+      {data.featureSections && data.featureSections.length > 0 && (
+        <section className="px-6">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {data.featureSections.map((section, i) => {
+              const title = lang === 'ar' ? (section.titleAr || section.titleEn) : (section.titleEn || section.titleAr);
+              return (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.04 }}
+                  className="bg-white p-4 rounded-2xl border border-primary-navy/5 shadow-sm"
+                >
+                  <h4 className="text-[10px] font-bold text-secondary-gold uppercase tracking-widest mb-2">
+                    {title}
+                  </h4>
+                  <ul className="space-y-1">
+                    {section.items.map((item, j) => (
+                      <li key={j} className="text-xs font-bold text-primary-navy/80 leading-snug">
+                        {lang === 'ar' ? (item.ar || item.en) : (item.en || item.ar)}
+                      </li>
+                    ))}
+                  </ul>
+                </motion.div>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* Footer Info */}
       <Footer

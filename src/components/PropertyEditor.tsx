@@ -12,10 +12,31 @@ import { type BilingualField, toBilingual } from '../utils/bilingual';
 
 interface GalleryImage { url: string; label: string; }
 
-interface FeatureSection {
-  title: string;
-  items: string[];
+interface FeatureItem {
+  en: string;
+  ar: string;
 }
+
+interface FeatureSection {
+  titleEn: string;
+  titleAr: string;
+  items: FeatureItem[];
+}
+
+const normalizeFeatureSections = (raw: unknown): FeatureSection[] => {
+  if (!Array.isArray(raw)) return [];
+  return raw.map((s: any) => ({
+    titleEn: typeof s?.titleEn === 'string' ? s.titleEn : typeof s?.title === 'string' ? s.title : '',
+    titleAr: typeof s?.titleAr === 'string' ? s.titleAr : '',
+    items: Array.isArray(s?.items)
+      ? s.items.map((it: any) =>
+          typeof it === 'string'
+            ? { en: it, ar: '' }
+            : { en: typeof it?.en === 'string' ? it.en : '', ar: typeof it?.ar === 'string' ? it.ar : '' }
+        )
+      : [],
+  }));
+};
 
 interface PropertyDetails {
   name: BilingualField;
@@ -98,7 +119,7 @@ const PropertyEditorComponent: React.FC = () => {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [newLabel, setNewLabel] = useState('');
-  const [newItemInputs, setNewItemInputs] = useState<Record<number, string>>({});
+  const [newItemInputs, setNewItemInputs] = useState<Record<number, { en: string; ar: string }>>({});
 
   // Special date form
   const [specialDate, setSpecialDate] = useState('');
@@ -136,7 +157,7 @@ const PropertyEditorComponent: React.FC = () => {
             description: toBilingual(data.description),
             termsOfStay: toBilingual(data.termsOfStay),
             footerText: toBilingual(data.footerText),
-            featureSections: Array.isArray(data.featureSections) ? data.featureSections : [],
+            featureSections: normalizeFeatureSections(data.featureSections),
             pricing: { ...DEFAULT_PRICING, ...migratePricing(data.pricing || {}) },
             aboutEn: typeof data.aboutEn === 'string' ? data.aboutEn : '',
             aboutAr: typeof data.aboutAr === 'string' ? data.aboutAr : '',
@@ -202,7 +223,7 @@ const PropertyEditorComponent: React.FC = () => {
   const addSection = () => {
     setForm(prev => ({
       ...prev,
-      featureSections: [...prev.featureSections, { title: '', items: [] }],
+      featureSections: [...prev.featureSections, { titleEn: '', titleAr: '', items: [] }],
     }));
   };
 
@@ -218,23 +239,36 @@ const PropertyEditorComponent: React.FC = () => {
     });
   };
 
-  const updateSectionTitle = (idx: number, title: string) => {
+  const updateSectionTitle = (idx: number, patch: Partial<Pick<FeatureSection, 'titleEn' | 'titleAr'>>) => {
     setForm(prev => ({
       ...prev,
-      featureSections: prev.featureSections.map((s, i) => i === idx ? { ...s, title } : s),
+      featureSections: prev.featureSections.map((s, i) => i === idx ? { ...s, ...patch } : s),
     }));
   };
 
   const addItemToSection = (idx: number) => {
-    const item = (newItemInputs[idx] || '').trim();
-    if (!item) return;
+    const draft = newItemInputs[idx] || { en: '', ar: '' };
+    const en = draft.en.trim();
+    const ar = draft.ar.trim();
+    if (!en && !ar) return;
     setForm(prev => ({
       ...prev,
       featureSections: prev.featureSections.map((s, i) =>
-        i === idx ? { ...s, items: [...s.items, item] } : s
+        i === idx ? { ...s, items: [...s.items, { en, ar }] } : s
       ),
     }));
-    setNewItemInputs(prev => ({ ...prev, [idx]: '' }));
+    setNewItemInputs(prev => ({ ...prev, [idx]: { en: '', ar: '' } }));
+  };
+
+  const updateItem = (sectionIdx: number, itemIdx: number, patch: Partial<FeatureItem>) => {
+    setForm(prev => ({
+      ...prev,
+      featureSections: prev.featureSections.map((s, i) =>
+        i === sectionIdx
+          ? { ...s, items: s.items.map((it, j) => j === itemIdx ? { ...it, ...patch } : it) }
+          : s
+      ),
+    }));
   };
 
   const removeItemFromSection = (sectionIdx: number, itemIdx: number) => {
@@ -918,63 +952,111 @@ const PropertyEditorComponent: React.FC = () => {
           Group property features into themed sections (e.g. Kitchen, Bedrooms, Outdoor). Each section is shown as a card in the guest view.
         </p>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {form.featureSections.map((section, idx) => (
-            <div key={idx} className="bg-pearl-white border border-primary-navy/10 rounded-2xl p-4 space-y-3">
-              <div className="flex items-center gap-2">
-                <input
-                  type="text"
-                  value={section.title}
-                  onChange={(e) => updateSectionTitle(idx, e.target.value)}
-                  placeholder="Section title (e.g. Kitchen)"
-                  className="flex-1 bg-white border border-primary-navy/10 rounded-lg py-2 px-3 text-sm font-bold text-secondary-gold placeholder:text-primary-navy/25 focus:ring-1 focus:ring-secondary-gold/50 outline-none"
-                />
-                <button
-                  onClick={() => removeSection(idx)}
-                  aria-label="Delete section"
-                  className="p-2 text-primary-navy/30 hover:text-red-500 hover:bg-red-500/5 rounded-lg transition-colors"
-                >
-                  <Trash2 size={14} />
-                </button>
-              </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {form.featureSections.map((section, idx) => {
+            const draft = newItemInputs[idx] || { en: '', ar: '' };
+            const canAddItem = !!(draft.en.trim() || draft.ar.trim());
+            return (
+              <div key={idx} className="bg-pearl-white border border-primary-navy/10 rounded-2xl p-4 space-y-4">
+                <div className="flex items-start gap-2">
+                  <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-secondary-gold">Title (English)</label>
+                      <input
+                        type="text"
+                        value={section.titleEn}
+                        onChange={(e) => updateSectionTitle(idx, { titleEn: e.target.value })}
+                        placeholder="e.g. Kitchen"
+                        className="w-full bg-white border border-primary-navy/10 rounded-lg py-2 px-3 text-sm font-bold text-primary-navy placeholder:text-primary-navy/25 focus:ring-1 focus:ring-secondary-gold/50 outline-none"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-secondary-gold flex items-center gap-1">
+                        <Languages size={10} /> Title (Arabic)
+                      </label>
+                      <input
+                        type="text"
+                        dir="rtl"
+                        value={section.titleAr}
+                        onChange={(e) => updateSectionTitle(idx, { titleAr: e.target.value })}
+                        placeholder="مثال: المطبخ"
+                        className="w-full bg-white border border-primary-navy/10 rounded-lg py-2 px-3 text-sm font-bold text-primary-navy placeholder:text-primary-navy/25 focus:ring-1 focus:ring-secondary-gold/50 outline-none"
+                      />
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => removeSection(idx)}
+                    aria-label="Delete section"
+                    className="mt-5 p-2 text-primary-navy/30 hover:text-red-500 hover:bg-red-500/5 rounded-lg transition-colors"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
 
-              <div className="space-y-1.5">
-                {section.items.map((item, j) => (
-                  <div key={j} className="flex items-center gap-2 bg-white border border-primary-navy/5 rounded-lg px-3 py-2">
-                    <span className="flex-1 text-xs font-bold text-primary-navy/80 truncate">{item}</span>
+                <div className="space-y-1.5">
+                  {section.items.map((item, j) => (
+                    <div key={j} className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={item.en}
+                        onChange={(e) => updateItem(idx, j, { en: e.target.value })}
+                        placeholder="English"
+                        className="flex-1 bg-white border border-primary-navy/10 rounded-lg py-2 px-3 text-xs font-bold text-primary-navy/80 placeholder:text-primary-navy/25 focus:ring-1 focus:ring-secondary-gold/50 outline-none"
+                      />
+                      <input
+                        type="text"
+                        dir="rtl"
+                        value={item.ar}
+                        onChange={(e) => updateItem(idx, j, { ar: e.target.value })}
+                        placeholder="العربية"
+                        className="flex-1 bg-white border border-primary-navy/10 rounded-lg py-2 px-3 text-xs font-bold text-primary-navy/80 placeholder:text-primary-navy/25 focus:ring-1 focus:ring-secondary-gold/50 outline-none"
+                      />
+                      <button
+                        onClick={() => removeItemFromSection(idx, j)}
+                        aria-label="Remove item"
+                        className="p-1.5 text-primary-navy/25 hover:text-red-500 transition-colors"
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                  ))}
+                  {section.items.length === 0 && (
+                    <p className="text-[10px] text-primary-navy/30 font-medium italic px-1">No items yet — add one below.</p>
+                  )}
+                </div>
+
+                <div className="border-t border-primary-navy/5 pt-3">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-primary-navy/40 mb-1.5">Add Item</p>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={draft.en}
+                      onChange={(e) => setNewItemInputs(prev => ({ ...prev, [idx]: { ...(prev[idx] || { en: '', ar: '' }), en: e.target.value } }))}
+                      onKeyDown={(e) => e.key === 'Enter' && addItemToSection(idx)}
+                      placeholder="English (e.g. Fridge)"
+                      className="flex-1 bg-white border border-primary-navy/10 rounded-lg py-2 px-3 text-xs placeholder:text-primary-navy/25 focus:ring-1 focus:ring-secondary-gold/50 outline-none"
+                    />
+                    <input
+                      type="text"
+                      dir="rtl"
+                      value={draft.ar}
+                      onChange={(e) => setNewItemInputs(prev => ({ ...prev, [idx]: { ...(prev[idx] || { en: '', ar: '' }), ar: e.target.value } }))}
+                      onKeyDown={(e) => e.key === 'Enter' && addItemToSection(idx)}
+                      placeholder="بالعربية (مثال: ثلاجة)"
+                      className="flex-1 bg-white border border-primary-navy/10 rounded-lg py-2 px-3 text-xs placeholder:text-primary-navy/25 focus:ring-1 focus:ring-secondary-gold/50 outline-none"
+                    />
                     <button
-                      onClick={() => removeItemFromSection(idx, j)}
-                      aria-label="Remove item"
-                      className="text-primary-navy/25 hover:text-red-500 transition-colors"
+                      onClick={() => addItemToSection(idx)}
+                      disabled={!canAddItem}
+                      className="px-3 py-2 bg-primary-navy/5 rounded-lg text-primary-navy/60 hover:bg-primary-navy/10 transition-colors disabled:opacity-30"
                     >
-                      <X size={12} />
+                      <Plus size={14} />
                     </button>
                   </div>
-                ))}
-                {section.items.length === 0 && (
-                  <p className="text-[10px] text-primary-navy/30 font-medium italic px-1">No items yet — add one below.</p>
-                )}
+                </div>
               </div>
-
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={newItemInputs[idx] || ''}
-                  onChange={(e) => setNewItemInputs(prev => ({ ...prev, [idx]: e.target.value }))}
-                  onKeyDown={(e) => e.key === 'Enter' && addItemToSection(idx)}
-                  placeholder="Add item (e.g. Fridge)"
-                  className="flex-1 bg-white border border-primary-navy/10 rounded-lg py-2 px-3 text-xs placeholder:text-primary-navy/25 focus:ring-1 focus:ring-secondary-gold/50 outline-none"
-                />
-                <button
-                  onClick={() => addItemToSection(idx)}
-                  disabled={!(newItemInputs[idx] || '').trim()}
-                  className="px-3 py-2 bg-primary-navy/5 rounded-lg text-primary-navy/60 hover:bg-primary-navy/10 transition-colors disabled:opacity-30"
-                >
-                  <Plus size={14} />
-                </button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         <button
