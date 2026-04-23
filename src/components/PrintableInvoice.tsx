@@ -157,7 +157,11 @@ export const PrintableInvoice: React.FC<PrintableInvoiceProps> = ({
         <header className="pi-header">
           <div className="pi-header-inner">
             <div className="pi-brand">
-              <div className="pi-brand-mark">AM</div>
+              <img
+                src="/assets/brand/logo.png"
+                className="invoice-logo"
+                alt={isAr ? 'شعار شاليه الملاك' : 'Al Malak Chalet Logo'}
+              />
               <div>
                 <div className="pi-brand-name">{company}</div>
                 <div className="pi-brand-tag">{t.location}</div>
