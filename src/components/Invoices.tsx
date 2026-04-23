@@ -56,6 +56,8 @@ export const Invoices: React.FC = () => {
     `Assalamu Alaikum {{guest_name}},\n\nHere is your invoice for your stay at Al Malak Chalet:\n\nBooking Ref: {{booking_id}}\nStay: {{stay_amount}} OMR\n{{deposit_line}}\nTotal: {{total_amount}} OMR\n{{receipt_line}}\n\nThank you for choosing Al Malak Chalet.`
   );
   const [licenseNumber, setLicenseNumber] = useState('');
+  const [termsEn, setTermsEn] = useState('');
+  const [termsAr, setTermsAr] = useState('');
   const [showTemplateEditor, setShowTemplateEditor] = useState(false);
   const [templateSaving, setTemplateSaving] = useState(false);
   const [viewer, setViewer] = useState<{ url: string; kind: 'receipt' | 'id' } | null>(null);
@@ -76,8 +78,11 @@ export const Invoices: React.FC = () => {
         if (notifSnap.exists() && notifSnap.data().whatsappTemplate) {
           setWhatsappTemplate(notifSnap.data().whatsappTemplate);
         }
-        if (propSnap.exists() && propSnap.data().licenseNumber) {
-          setLicenseNumber(propSnap.data().licenseNumber);
+        if (propSnap.exists()) {
+          const pd = propSnap.data() as { licenseNumber?: string; termsEn?: string; termsAr?: string };
+          if (pd.licenseNumber) setLicenseNumber(pd.licenseNumber);
+          if (typeof pd.termsEn === 'string') setTermsEn(pd.termsEn);
+          if (typeof pd.termsAr === 'string') setTermsAr(pd.termsAr);
         }
       } catch (err) {
         console.error('Failed to load settings:', err);
@@ -575,6 +580,9 @@ export const Invoices: React.FC = () => {
           adminName={config.admin.name}
           balanceDue={Number(selectedBooking?.balance_due) || Number(selectedBooking?.depositAmount) || Number(selectedBooking?.security_deposit) || 0}
           depositUnpaid={selectedBooking?.deposit_paid === false}
+          checkIn={selectedBooking?.check_in}
+          checkOut={selectedBooking?.check_out}
+          termsText={i18n.language === 'ar' ? termsAr : termsEn}
         />
       )}
 
@@ -735,25 +743,24 @@ export const Invoices: React.FC = () => {
               </div>
 
               {/* Modal Actions */}
-              <div className="p-5 bg-surface-container-low space-y-3 border-t border-primary-navy/5">
-                <div className="flex gap-3">
+              <div className="p-5 bg-surface-container-low space-y-3 border-t border-primary-navy/5 no-print">
+                {/* Primary action — large, full-width tap target for mobile owners */}
+                <button
+                  onClick={handlePrint}
+                  className="w-full min-h-[56px] flex items-center justify-center gap-3 bg-primary-navy text-white rounded-2xl font-bold text-sm uppercase tracking-wider shadow-lg shadow-primary-navy/20 active:scale-[0.98] hover:bg-primary-navy/90 transition-all"
+                >
+                  <Printer size={20} />
+                  {i18n.language === 'ar' ? 'طباعة / حفظ PDF' : 'Print / Save as PDF'}
+                </button>
+                {selectedBooking && (
                   <button
-                    onClick={handlePrint}
-                    className="flex-1 border border-primary-navy/20 py-3 rounded-xl font-bold text-[10px] uppercase tracking-widest text-primary-navy hover:bg-white transition-colors flex items-center justify-center gap-2"
+                    onClick={() => handleSendWhatsApp(selectedBooking)}
+                    className="w-full min-h-[48px] flex items-center justify-center gap-2 border border-emerald-300 bg-emerald-50 rounded-xl font-bold text-xs uppercase tracking-widest text-emerald-700 hover:bg-emerald-100 active:scale-[0.98] transition-all"
                   >
-                    <Printer size={14} />
-                    {i18n.language === 'ar' ? 'طباعة / حفظ PDF' : 'Print / Save as PDF'}
+                    <MessageCircle size={16} />
+                    {i18n.language === 'ar' ? 'إرسال عبر واتساب' : 'Send via WhatsApp'}
                   </button>
-                  {selectedBooking && (
-                    <button
-                      onClick={() => handleSendWhatsApp(selectedBooking)}
-                      className="flex-1 border border-emerald-300 bg-emerald-50 py-3 rounded-xl font-bold text-[10px] uppercase tracking-widest text-emerald-700 hover:bg-emerald-100 transition-colors flex items-center justify-center gap-2"
-                    >
-                      <MessageCircle size={14} />
-                      Send via WhatsApp
-                    </button>
-                  )}
-                </div>
+                )}
                 {whatsappHref(config.social.whatsapp) && (
                   <a
                     href={whatsappHref(config.social.whatsapp) as string}

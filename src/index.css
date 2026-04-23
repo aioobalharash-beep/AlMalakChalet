@@ -62,6 +62,12 @@
   display: none;
 }
 
+/* Automatic page break — used on the Terms of Stay section */
+.page-break {
+  break-before: page;
+  page-break-before: always;
+}
+
 @media print {
   @page {
     size: A4;
@@ -92,6 +98,15 @@
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
     color-adjust: exact !important;
+  }
+
+  /* Fixed A4 width — prevents mobile browsers from squashing the print */
+  #invoice-container {
+    width: 210mm !important;
+    max-width: 210mm !important;
+    min-width: 210mm !important;
+    margin: 0 auto !important;
+    box-sizing: border-box !important;
   }
 
   .no-print {
@@ -219,6 +234,60 @@
   margin-top: 2px;
 }
 
+/* Stay window */
+.printable-invoice .pi-stay {
+  margin-top: 2mm;
+  padding: 10px 14px;
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+}
+.printable-invoice .pi-stay-label {
+  font-size: 9px;
+  font-weight: 700;
+  color: #9ca3af;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.printable-invoice .pi-stay-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+  align-items: center;
+}
+.printable-invoice .pi-stay-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 12px;
+  color: #011F36;
+}
+.printable-invoice .pi-stay-chip-label {
+  font-weight: 700;
+  color: #011F36;
+  letter-spacing: 0.3px;
+}
+.printable-invoice .pi-stay-chip-value {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  color: #374151;
+}
+.printable-invoice .pi-stay-date {
+  font-weight: 600;
+}
+.printable-invoice .pi-stay-sep {
+  color: #D4AF37;
+  font-weight: 700;
+  margin: 0 2px;
+}
+.printable-invoice .pi-stay-time {
+  font-weight: 700;
+  color: #011F36;
+  font-variant-numeric: tabular-nums;
+}
+
 /* Table */
 .printable-invoice .pi-table-wrap {
   margin-top: 6mm;
@@ -323,5 +392,63 @@
   font-size: 9px;
   color: #9ca3af;
   letter-spacing: 0.5px;
+}
+
+/* Terms of Stay — page 2 */
+.printable-invoice .pi-terms {
+  padding-top: 18mm;
+  padding-bottom: 14mm;
+}
+.printable-invoice .pi-terms-header {
+  margin-bottom: 10mm;
+}
+.printable-invoice .pi-terms-eyebrow {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  color: #D4AF37;
+  text-transform: uppercase;
+}
+.printable-invoice .pi-terms-title {
+  font-size: 30px;
+  font-weight: 800;
+  color: #011F36;
+  margin: 4px 0 6px;
+  letter-spacing: 1px;
+}
+.printable-invoice .pi-terms-intro {
+  font-size: 11px;
+  color: #6b7280;
+  margin: 0 0 10px;
+}
+.printable-invoice .pi-terms-accent {
+  height: 3px;
+  width: 80px;
+  background: #D4AF37;
+  border-radius: 2px;
+}
+.printable-invoice .pi-terms-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6mm;
+}
+.printable-invoice .pi-terms-block {
+  break-inside: avoid;
+  page-break-inside: avoid;
+  border-inline-start: 3px solid #D4AF37;
+  padding-inline-start: 12px;
+}
+.printable-invoice .pi-terms-heading {
+  font-size: 13px;
+  font-weight: 700;
+  color: #011F36;
+  margin: 0 0 4px;
+  letter-spacing: 0.3px;
+}
+.printable-invoice .pi-terms-text {
+  font-size: 11.5px;
+  line-height: 1.75;
+  color: #374151;
+  margin: 0;
 }
 
