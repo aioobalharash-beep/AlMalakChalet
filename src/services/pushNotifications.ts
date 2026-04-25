@@ -21,7 +21,13 @@ async function getMessagingInstance(): Promise<Messaging | null> {
 
 async function registerFcmServiceWorker(): Promise<ServiceWorkerRegistration | null> {
   if (!('serviceWorker' in navigator)) return null;
-  return navigator.serviceWorker.register('/firebase-messaging-sw.js', { scope: '/' });
+  // Reuse the app's main service worker (registered in main.tsx) for push.
+  // Registering a second SW at the same scope `/` would clobber whichever was
+  // registered last on the next page load, silently breaking background pushes.
+  // service-worker.js handles the push + notificationclick events directly.
+  const existing = await navigator.serviceWorker.getRegistration('/');
+  if (existing) return existing;
+  return navigator.serviceWorker.register('/service-worker.js', { scope: '/' });
 }
 
 export type PushPermissionResult =
@@ -125,7 +131,7 @@ export function notifyAdminsOfNewBooking(params: {
 /**
  * Foreground message handler — call once on mount to show in-app toast / system
  * notification while the admin is actively viewing the dashboard. Background
- * delivery is handled entirely by firebase-messaging-sw.js.
+ * delivery is handled by the push handler in /public/service-worker.js.
  */
 export async function onForegroundPush(
   handler: (title: string, body: string, data: Record<string, string>) => void
