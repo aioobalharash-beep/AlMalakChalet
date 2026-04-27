@@ -184,7 +184,7 @@ function buildInvoiceHtml(
     // Already Arabic — pass through
     if (/[\u0600-\u06FF]/.test(desc)) return desc;
     // Known patterns
-    if (/refundable\s*security\s*deposit/i.test(desc)) return 'مبلغ التأمين المسترد';
+    if (/security\s*deposit|refundable\s*security\s*deposit/i.test(desc)) return 'مبلغ التأمين يدفع عند الدخول';
     if (/full\s*day/i.test(desc)) return `يوم كامل بدون مبيت — ${localizedProperty}`;
     if (/day\s*use/i.test(desc)) return `يوم كامل بدون مبيت — ${localizedProperty}`;
     if (/partial/i.test(desc)) return `حجز جزئي — ${localizedProperty}`;

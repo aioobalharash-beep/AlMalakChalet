@@ -58,7 +58,7 @@ const DEFAULT_TERMS_AR = `1. الحجز والدفع
 const localizeDesc = (desc: string, isAr: boolean, property: string): string => {
   if (!isAr) return desc;
   if (/[؀-ۿ]/.test(desc)) return desc;
-  if (/refundable\s*security\s*deposit/i.test(desc)) return 'مبلغ التأمين المسترد';
+  if (/security\s*deposit|refundable\s*security\s*deposit/i.test(desc)) return 'مبلغ التأمين يدفع عند الدخول';
   if (/full\s*day|day\s*use/i.test(desc)) return `يوم كامل بدون مبيت — ${property}`;
   if (/partial/i.test(desc)) return `حجز جزئي — ${property}`;
   if (/morning/i.test(desc)) return `فترة صباحية — ${property}`;
