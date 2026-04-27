@@ -127,7 +127,7 @@ export const Invoices: React.FC = () => {
       const nightWord = isAr ? (b.nights > 1 ? 'ليالٍ' : 'ليلة') : (b.nights > 1 ? 'Nights' : 'Night');
       stayLabel = `${b.nights} ${nightWord} — ${propName}`;
     }
-    const depositLabel = isAr ? 'مبلغ التأمين المسترد' : 'Refundable Security Deposit';
+    const depositLabel = isAr ? 'مبلغ التأمين يدفع عند الدخول' : 'Security Deposit – Payable at Check-in';
     const items: Invoice['items'] = [
       { id: 1, invoice_id: b.id, description: stayLabel, amount: stayTotal },
     ];
@@ -139,9 +139,9 @@ export const Invoices: React.FC = () => {
       guest_name: b.guest_name,
       booking_ref: b.id.slice(0, 8).toUpperCase(),
       room_type: propName,
-      subtotal: total,
+      subtotal: stayTotal,
       vat_amount: 0,
-      total_amount: total,
+      total_amount: stayTotal,
       status: b.status === 'confirmed' ? 'paid' : 'pending',
       vat_compliant: false,
       issued_date: b.created_at,
