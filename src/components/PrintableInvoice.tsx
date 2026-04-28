@@ -11,6 +11,9 @@ interface PrintableInvoiceProps {
   depositUnpaid?: boolean;
   checkIn?: string;
   checkOut?: string;
+  /** "HH:mm" 24-hour format. Falls back to the property defaults when absent. */
+  checkInTime?: string;
+  checkOutTime?: string;
   termsText?: string;
 }
 
@@ -18,6 +21,20 @@ const CHECK_IN_TIME_EN = '2:00 PM';
 const CHECK_OUT_TIME_EN = '10:00 AM';
 const CHECK_IN_TIME_AR = '2:00 م';
 const CHECK_OUT_TIME_AR = '10:00 ص';
+
+/** Renders a "HH:mm" 24-hour string as "h:mm AM/PM" (or Arabic ص/م).
+ *  Returns `undefined` for blanks so the caller can fall back to defaults. */
+const formatTime12 = (time: string | undefined, isAr: boolean): string | undefined => {
+  if (!time || !/^\d{1,2}:\d{2}$/.test(time)) return undefined;
+  const [hRaw, mRaw] = time.split(':');
+  const h = parseInt(hRaw, 10);
+  const m = parseInt(mRaw, 10);
+  if (Number.isNaN(h) || Number.isNaN(m)) return undefined;
+  const suffix = isAr ? (h < 12 ? 'ص' : 'م') : (h < 12 ? 'AM' : 'PM');
+  const hour12 = h % 12 === 0 ? 12 : h % 12;
+  const mm = m.toString().padStart(2, '0');
+  return `${hour12}:${mm} ${suffix}`;
+};
 
 const DEFAULT_TERMS_EN = `1. Booking & Payment
 All reservations require a security deposit at the time of booking. Full payment is due upon check-in. Accepted methods include Thawani, bank transfer, and walk-in payment.
@@ -83,6 +100,8 @@ export const PrintableInvoice: React.FC<PrintableInvoiceProps> = ({
   depositUnpaid,
   checkIn,
   checkOut,
+  checkInTime,
+  checkOutTime,
   termsText,
 }) => {
   const isAr = lang === 'ar';
@@ -104,8 +123,13 @@ export const PrintableInvoice: React.FC<PrintableInvoiceProps> = ({
   const checkInStr = fmtDate(checkIn);
   const checkOutStr = fmtDate(checkOut);
 
-  const checkInTime = isAr ? CHECK_IN_TIME_AR : CHECK_IN_TIME_EN;
-  const checkOutTime = isAr ? CHECK_OUT_TIME_AR : CHECK_OUT_TIME_EN;
+  // Prefer the times stored on the booking (set by the manual entry flow or
+  // a day-use slot). Fall back to the chalet's standard 2 PM / 10 AM window
+  // when the booking didn't capture explicit times.
+  const checkInTimeFmt =
+    formatTime12(checkInTime, isAr) || (isAr ? CHECK_IN_TIME_AR : CHECK_IN_TIME_EN);
+  const checkOutTimeFmt =
+    formatTime12(checkOutTime, isAr) || (isAr ? CHECK_OUT_TIME_AR : CHECK_OUT_TIME_EN);
 
   const t = {
     invoice: isAr ? 'فاتورة' : 'INVOICE',
@@ -243,7 +267,7 @@ export const PrintableInvoice: React.FC<PrintableInvoiceProps> = ({
                 <span className="pi-stay-chip-value">
                   {checkInStr && <span className="pi-stay-date">{checkInStr}</span>}
                   <span className="pi-stay-sep">|</span>
-                  <span className="pi-stay-time">{checkInTime}</span>
+                  <span className="pi-stay-time">{checkInTimeFmt}</span>
                 </span>
               </span>
               <span className="pi-stay-chip">
@@ -251,7 +275,7 @@ export const PrintableInvoice: React.FC<PrintableInvoiceProps> = ({
                 <span className="pi-stay-chip-value">
                   {checkOutStr && <span className="pi-stay-date">{checkOutStr}</span>}
                   <span className="pi-stay-sep">|</span>
-                  <span className="pi-stay-time">{checkOutTime}</span>
+                  <span className="pi-stay-time">{checkOutTimeFmt}</span>
                 </span>
               </span>
             </div>

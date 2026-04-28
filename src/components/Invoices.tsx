@@ -35,6 +35,8 @@ interface RealtimeBooking {
   idImageUrl?: string;
   slot_name?: string;
   slot_name_ar?: string;
+  slot_start_time?: string;
+  slot_end_time?: string;
   created_at: string;
 }
 
@@ -112,7 +114,13 @@ export const Invoices: React.FC = () => {
     const propName = isAr ? 'شاليه الملاك' : b.property_name;
     const deposit = Number(b.depositAmount) || Number(b.security_deposit) || 0;
     const stayTotal = Number(b.stayTotal) || (Number(b.grandTotal || b.total_amount) - deposit);
-    const total = Number(b.grandTotal) || Number(b.total_amount) || (stayTotal + deposit);
+    // Manual walk-in flow: when the admin marks the deposit as Paid Upfront we
+    // fold it into the Grand Total. When unpaid, the invoice total is just the
+    // stay price and the deposit shows as "Payable on Entry". Online bookings
+    // (no `deposit_paid` flag stored, or stored as `true`) keep their existing
+    // behaviour — deposit was collected with the booking, so it's part of the
+    // total.
+    const depositPaidUpfront = b.deposit_paid !== false;
     const isDayUse = b.check_in === b.check_out;
     const isFullDay = isDayUse && (!b.slot_name || /full\s*day/i.test(b.slot_name));
     let stayLabel: string;
@@ -127,13 +135,27 @@ export const Invoices: React.FC = () => {
       const nightWord = isAr ? (b.nights > 1 ? 'ليالٍ' : 'ليلة') : (b.nights > 1 ? 'Nights' : 'Night');
       stayLabel = `${b.nights} ${nightWord} — ${propName}`;
     }
-    const depositLabel = isAr ? 'مبلغ التأمين يدفع عند الدخول' : 'Security Deposit – Payable at Check-in';
+    const depositLabelPaid = isAr
+      ? 'مبلغ التأمين (مدفوع مقدماً)'
+      : 'Security Deposit (Paid Upfront)';
+    const depositLabelUnpaid = isAr
+      ? 'مبلغ التأمين — يدفع عند الدخول'
+      : 'Security Deposit — Payable on Entry';
     const items: Invoice['items'] = [
       { id: 1, invoice_id: b.id, description: stayLabel, amount: stayTotal },
     ];
     if (deposit > 0) {
-      items.push({ id: 2, invoice_id: b.id, description: depositLabel, amount: deposit });
+      items.push({
+        id: 2,
+        invoice_id: b.id,
+        description: depositPaidUpfront ? depositLabelPaid : depositLabelUnpaid,
+        amount: deposit,
+      });
     }
+    // Grand Total reflects what the guest actually owes on this invoice:
+    //   - Deposit paid upfront → stay + deposit
+    //   - Deposit unpaid       → stay only (deposit collected on entry)
+    const grandTotal = depositPaidUpfront ? stayTotal + deposit : stayTotal;
     return {
       id: b.id,
       guest_name: b.guest_name,
@@ -141,7 +163,7 @@ export const Invoices: React.FC = () => {
       room_type: propName,
       subtotal: stayTotal,
       vat_amount: 0,
-      total_amount: stayTotal,
+      total_amount: grandTotal,
       status: b.status === 'confirmed' ? 'paid' : 'pending',
       vat_compliant: false,
       issued_date: b.created_at,
@@ -212,13 +234,23 @@ export const Invoices: React.FC = () => {
     const phone = formatPhone(b.guest_phone);
     const deposit = Number(b.depositAmount) || Number(b.security_deposit) || 0;
     const stayAmount = Number(b.stayTotal) || (Number(b.grandTotal || b.total_amount) - deposit);
-    const total = Number(b.grandTotal) || Number(b.total_amount) || (stayAmount + deposit);
+    // Match the on-screen invoice: deposit folds into the total only when it
+    // was paid upfront. Otherwise the WhatsApp message advertises the deposit
+    // as payable on entry.
+    const depositPaidUpfront = b.deposit_paid !== false;
+    const total = depositPaidUpfront ? stayAmount + deposit : stayAmount;
     const receiptLink = b.receiptURL || '';
+    let depositLine = '';
+    if (deposit > 0) {
+      depositLine = depositPaidUpfront
+        ? `Refundable Deposit (Paid): ${deposit.toFixed(2)} OMR`
+        : `Refundable Deposit (Payable on Entry): ${deposit.toFixed(2)} OMR`;
+    }
     const rendered = whatsappTemplate
       .replace(/\{\{guest_name\}\}/g, b.guest_name)
       .replace(/\{\{booking_id\}\}/g, b.id.slice(0, 8).toUpperCase())
       .replace(/\{\{stay_amount\}\}/g, stayAmount.toFixed(2))
-      .replace(/\{\{deposit_line\}\}/g, deposit > 0 ? `Refundable Deposit: ${deposit.toFixed(2)} OMR` : '')
+      .replace(/\{\{deposit_line\}\}/g, depositLine)
       .replace(/\{\{total_amount\}\}/g, total.toFixed(2))
       .replace(/\{\{receipt_line\}\}/g, receiptLink ? `Receipt: ${receiptLink}` : '');
     const message = encodeURIComponent(rendered);
@@ -582,6 +614,8 @@ export const Invoices: React.FC = () => {
           depositUnpaid={selectedBooking?.deposit_paid === false}
           checkIn={selectedBooking?.check_in}
           checkOut={selectedBooking?.check_out}
+          checkInTime={selectedBooking?.slot_start_time}
+          checkOutTime={selectedBooking?.slot_end_time}
           termsText={i18n.language === 'ar' ? termsAr : termsEn}
         />
       )}

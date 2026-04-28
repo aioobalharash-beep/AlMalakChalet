@@ -246,6 +246,7 @@ export interface FirestoreBooking {
   stay_type?: 'day_use' | 'night_stay' | 'event';
   slot_id?: string;
   slot_name?: string;
+  slot_name_ar?: string;
   slot_start_time?: string;
   slot_end_time?: string;
   termsAccepted?: boolean;
@@ -278,6 +279,7 @@ export const firestoreBookings = {
     stay_type?: 'day_use' | 'night_stay' | 'event';
     slot_id?: string;
     slot_name?: string;
+    slot_name_ar?: string;
     slot_start_time?: string;
     slot_end_time?: string;
     termsAccepted?: boolean;
@@ -345,9 +347,18 @@ export const firestoreBookings = {
       ...(data.slot_id ? {
         slot_id: data.slot_id,
         slot_name: data.slot_name || '',
+        ...(data.slot_name_ar ? { slot_name_ar: data.slot_name_ar } : {}),
         slot_start_time: data.slot_start_time || '',
         slot_end_time: data.slot_end_time || '',
-      } : {}),
+      } : {
+        // Manual walk-in entries don't reference a saved day-use slot but the
+        // admin still picks check-in/out times — persist whatever was provided
+        // so the invoice and dashboard can render the actual hours.
+        ...(data.slot_name ? { slot_name: data.slot_name } : {}),
+        ...(data.slot_name_ar ? { slot_name_ar: data.slot_name_ar } : {}),
+        ...(data.slot_start_time ? { slot_start_time: data.slot_start_time } : {}),
+        ...(data.slot_end_time ? { slot_end_time: data.slot_end_time } : {}),
+      }),
       ...(data.termsAccepted ? {
         termsAccepted: true,
         termsAcceptedAt: data.termsAcceptedAt || new Date().toISOString(),

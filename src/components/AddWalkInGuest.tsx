@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
-import { X, UserPlus, Check, Gift, Upload, IdCard, AlertCircle } from 'lucide-react';
+import { X, UserPlus, Check, Gift, Upload, IdCard, AlertCircle, Moon, Sun } from 'lucide-react';
 import { cn } from '@/src/lib/utils';
 import { useTranslation } from 'react-i18next';
 import { firestoreBookings } from '../services/firestore';
@@ -14,7 +14,7 @@ interface AddWalkInGuestProps {
 }
 
 type PaymentMode = 'paid' | 'free';
-type DepositChoice = 'yes' | 'no';
+type StayType = 'night_stay' | 'day_use';
 
 interface WalkInForm {
   name: string;
@@ -22,6 +22,8 @@ interface WalkInForm {
   email: string;
   check_in: string;
   check_out: string;
+  check_in_time: string;
+  check_out_time: string;
   property_id: string;
   property_name: string;
 }
@@ -32,8 +34,39 @@ const EMPTY_FORM: WalkInForm = {
   email: '',
   check_in: '',
   check_out: '',
+  check_in_time: '',
+  check_out_time: '',
   property_id: '',
   property_name: '',
+};
+
+const DEFAULT_CHECK_IN_TIME = '14:00';
+const DEFAULT_CHECK_OUT_TIME_WEEKDAY = '10:00';
+const DEFAULT_CHECK_OUT_TIME_WEEKEND = '11:00';
+const DEFAULT_DAY_USE_CHECK_IN = '14:00';
+const DEFAULT_DAY_USE_CHECK_OUT = '23:00';
+
+/** Returns the default night-stay check-out time for a given check-in date.
+ *  Thursday/Friday/Saturday check-ins get a later 11:00 AM check-out;
+ *  every other day defaults to 10:00 AM. */
+const nightCheckOutDefault = (checkInDate: string): string => {
+  if (!checkInDate) return DEFAULT_CHECK_OUT_TIME_WEEKDAY;
+  // `new Date('YYYY-MM-DD')` parses as UTC; reading getUTCDay keeps the
+  // weekday stable regardless of the admin's local timezone.
+  const d = new Date(`${checkInDate}T00:00:00`);
+  const day = d.getDay(); // 0=Sun, 4=Thu, 5=Fri, 6=Sat
+  return (day === 4 || day === 5 || day === 6)
+    ? DEFAULT_CHECK_OUT_TIME_WEEKEND
+    : DEFAULT_CHECK_OUT_TIME_WEEKDAY;
+};
+
+/** Adds one day to a YYYY-MM-DD string (used to default the night-stay
+ *  check-out date to the morning after check-in). */
+const addOneDay = (date: string): string => {
+  if (!date) return '';
+  const d = new Date(`${date}T00:00:00`);
+  d.setDate(d.getDate() + 1);
+  return d.toISOString().split('T')[0];
 };
 
 export const AddWalkInGuest: React.FC<AddWalkInGuestProps> = ({ open, onClose, properties }) => {
@@ -55,9 +88,39 @@ export const AddWalkInGuest: React.FC<AddWalkInGuestProps> = ({ open, onClose, p
   const [idFileName, setIdFileName] = useState('');
   const [idProgress, setIdProgress] = useState<number | null>(null);
 
-  // Deposit state
-  const [depositPaid, setDepositPaid] = useState<DepositChoice>('yes');
+  // Deposit state — `depositPaidUpfront` reflects the new
+  // "Deposit Paid Upfront" toggle. When true, the deposit is folded into
+  // the Grand Total. When false, the deposit shows as "Payable on Entry"
+  // and the Grand Total is just the stay price.
+  const [depositPaidUpfront, setDepositPaidUpfront] = useState<boolean>(true);
   const [depositAmount, setDepositAmount] = useState('');
+
+  // Stay type & times — drive the auto-population of check-in/out times.
+  const [stayType, setStayType] = useState<StayType>('night_stay');
+
+  // Whenever the admin changes stay type or the check-in date, re-apply the
+  // default times unless they've already been hand-edited (we still allow
+  // manual override after auto-population).
+  useEffect(() => {
+    if (stayType === 'day_use') {
+      setForm(p => ({
+        ...p,
+        check_out: p.check_in,
+        check_in_time: DEFAULT_DAY_USE_CHECK_IN,
+        check_out_time: DEFAULT_DAY_USE_CHECK_OUT,
+      }));
+    } else {
+      setForm(p => ({
+        ...p,
+        check_out: p.check_in ? addOneDay(p.check_in) : p.check_out,
+        check_in_time: DEFAULT_CHECK_IN_TIME,
+        check_out_time: nightCheckOutDefault(p.check_in),
+      }));
+    }
+    // We intentionally only react to stayType + check_in changes; the times
+    // remain editable after this effect runs.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stayType, form.check_in]);
 
   const reset = () => {
     setForm(EMPTY_FORM);
@@ -70,8 +133,9 @@ export const AddWalkInGuest: React.FC<AddWalkInGuestProps> = ({ open, onClose, p
     setIdFile(null);
     setIdFileName('');
     setIdProgress(null);
-    setDepositPaid('yes');
+    setDepositPaidUpfront(true);
     setDepositAmount('');
+    setStayType('night_stay');
   };
 
   const handleClose = () => {
@@ -86,6 +150,8 @@ export const AddWalkInGuest: React.FC<AddWalkInGuestProps> = ({ open, onClose, p
     if (!form.phone.trim()) errs.phone = 'Phone is required';
     if (!form.check_in) errs.check_in = 'Check-in date is required';
     if (!form.check_out) errs.check_out = 'Check-out date is required';
+    if (!form.check_in_time) errs.check_in_time = 'Check-in time is required';
+    if (!form.check_out_time) errs.check_out_time = 'Check-out time is required';
     if (paymentMode === 'paid') {
       const amt = parseFloat(amountPaid);
       if (!amountPaid || isNaN(amt) || amt <= 0) errs.amount = 'Amount paid is required';
@@ -139,7 +205,13 @@ export const AddWalkInGuest: React.FC<AddWalkInGuestProps> = ({ open, onClose, p
 
       const prop = properties[0];
       const parsedAmount = paymentMode === 'paid' ? parseFloat(amountPaid) : 0;
-      const isDepositPaid = depositPaid === 'yes';
+
+      // Slot label — used by the calendar/dashboard to render the booking
+      // and by the invoice generator to choose between "Day Use" and
+      // "N Nights" copy. Day-use bookings get a "Full Day" slot so the
+      // existing rendering paths Just Work.
+      const slotName = stayType === 'day_use' ? 'Full Day' : '';
+      const slotNameAr = stayType === 'day_use' ? 'يوم كامل' : '';
 
       // Writes to the same `bookings` collection the public Calendar listens on,
       // so the selected dates are blocked out exactly like a web booking.
@@ -157,10 +229,15 @@ export const AddWalkInGuest: React.FC<AddWalkInGuestProps> = ({ open, onClose, p
         payment_method: 'walk_in',
         payment_mode: paymentMode,
         amount_paid: parsedAmount,
-        deposit_paid: isDepositPaid,
+        deposit_paid: depositPaidUpfront,
         receiptURL,
         idImageUrl,
         isManual: true,
+        stay_type: stayType,
+        slot_name: slotName,
+        slot_name_ar: slotNameAr,
+        slot_start_time: form.check_in_time,
+        slot_end_time: form.check_out_time,
       });
 
       reset();
@@ -246,6 +323,41 @@ export const AddWalkInGuest: React.FC<AddWalkInGuestProps> = ({ open, onClose, p
             />
           </div>
 
+          {/* Stay Type */}
+          <div className="space-y-3 pt-1">
+            <label className="text-[10px] font-bold uppercase tracking-widest text-secondary-gold">
+              {t('guests.stayType')}
+            </label>
+            <div className="grid grid-cols-2 gap-2 bg-surface-container-low rounded-xl p-1">
+              <button
+                type="button"
+                onClick={() => setStayType('night_stay')}
+                className={cn(
+                  "flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs font-bold uppercase tracking-widest transition-all active:scale-[0.98]",
+                  stayType === 'night_stay'
+                    ? "bg-primary-navy text-white shadow-sm"
+                    : "text-primary-navy/50 hover:text-primary-navy/70"
+                )}
+              >
+                <Moon size={13} />
+                {t('guests.nightStay')}
+              </button>
+              <button
+                type="button"
+                onClick={() => setStayType('day_use')}
+                className={cn(
+                  "flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs font-bold uppercase tracking-widest transition-all active:scale-[0.98]",
+                  stayType === 'day_use'
+                    ? "bg-secondary-gold text-primary-navy shadow-sm"
+                    : "text-primary-navy/50 hover:text-primary-navy/70"
+                )}
+              >
+                <Sun size={13} />
+                {t('guests.dayUse')}
+              </button>
+            </div>
+          </div>
+
           {/* Dates */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
@@ -271,14 +383,52 @@ export const AddWalkInGuest: React.FC<AddWalkInGuestProps> = ({ open, onClose, p
                 type="date"
                 value={form.check_out}
                 onChange={(e) => setForm(p => ({ ...p, check_out: e.target.value }))}
+                disabled={stayType === 'day_use'}
                 className={cn(
-                  "w-full bg-surface-container-low border rounded-xl py-3 px-4 text-sm",
+                  "w-full bg-surface-container-low border rounded-xl py-3 px-4 text-sm disabled:opacity-60",
                   errors.check_out ? "border-red-300" : "border-transparent"
                 )}
               />
               {errors.check_out && <p className="text-red-500 text-xs">{errors.check_out}</p>}
             </div>
           </div>
+
+          {/* Times — auto-populated by stay type + check-in day, but editable */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-secondary-gold">
+                {t('guests.checkInTime')} *
+              </label>
+              <input
+                type="time"
+                value={form.check_in_time}
+                onChange={(e) => setForm(p => ({ ...p, check_in_time: e.target.value }))}
+                className={cn(
+                  "w-full bg-surface-container-low border rounded-xl py-3 px-4 text-sm",
+                  errors.check_in_time ? "border-red-300" : "border-transparent"
+                )}
+              />
+              {errors.check_in_time && <p className="text-red-500 text-xs">{errors.check_in_time}</p>}
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-secondary-gold">
+                {t('guests.checkOutTime')} *
+              </label>
+              <input
+                type="time"
+                value={form.check_out_time}
+                onChange={(e) => setForm(p => ({ ...p, check_out_time: e.target.value }))}
+                className={cn(
+                  "w-full bg-surface-container-low border rounded-xl py-3 px-4 text-sm",
+                  errors.check_out_time ? "border-red-300" : "border-transparent"
+                )}
+              />
+              {errors.check_out_time && <p className="text-red-500 text-xs">{errors.check_out_time}</p>}
+            </div>
+          </div>
+          <p className="text-[10px] text-primary-navy/40 font-medium leading-relaxed -mt-2">
+            {t('guests.timesAutoFilledHint')}
+          </p>
 
           {/* Guest ID upload */}
           <div className="space-y-1.5">
@@ -402,36 +552,37 @@ export const AddWalkInGuest: React.FC<AddWalkInGuestProps> = ({ open, onClose, p
 
           {/* Deposit Block */}
           <div className="space-y-3 pt-2">
-            <label className="block text-start text-[10px] font-bold uppercase tracking-widest text-secondary-gold">
-              {t('guests.depositPaidQuestion')}
+            {/* Deposit Paid Upfront — single checkbox-style toggle. When ON the
+                deposit is folded into the Grand Total on the invoice. When OFF
+                the invoice shows it as "Payable on Entry" instead. */}
+            <label
+              className={cn(
+                "flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-colors",
+                depositPaidUpfront
+                  ? "border-primary-navy/20 bg-primary-navy/[0.03]"
+                  : "border-primary-navy/10 bg-surface-container-low hover:border-primary-navy/20"
+              )}
+            >
+              <input
+                type="checkbox"
+                checked={depositPaidUpfront}
+                onChange={(e) => setDepositPaidUpfront(e.target.checked)}
+                className="mt-0.5 w-4 h-4 accent-primary-navy cursor-pointer"
+              />
+              <div className="flex-1 space-y-0.5">
+                <div className="text-sm font-bold text-primary-navy text-start">
+                  {t('guests.depositPaidUpfront')}
+                </div>
+                <div className="text-[11px] text-primary-navy/50 font-medium text-start" dir="rtl" lang="ar">
+                  تم دفع التأمين مقدماً
+                </div>
+                <div className="text-[10px] text-primary-navy/40 font-medium text-start mt-1">
+                  {depositPaidUpfront
+                    ? t('guests.depositPaidUpfrontHelpOn')
+                    : t('guests.depositPaidUpfrontHelpOff')}
+                </div>
+              </div>
             </label>
-            <div className="grid grid-cols-2 gap-2 bg-surface-container-low rounded-xl p-1">
-              <button
-                type="button"
-                onClick={() => setDepositPaid('yes')}
-                className={cn(
-                  "flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs font-bold uppercase tracking-widest transition-all active:scale-[0.98]",
-                  depositPaid === 'yes'
-                    ? "bg-primary-navy text-white shadow-sm"
-                    : "text-primary-navy/50 hover:text-primary-navy/70"
-                )}
-              >
-                <Check size={13} />
-                {t('guests.yes')}
-              </button>
-              <button
-                type="button"
-                onClick={() => setDepositPaid('no')}
-                className={cn(
-                  "flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs font-bold uppercase tracking-widest transition-all active:scale-[0.98]",
-                  depositPaid === 'no'
-                    ? "bg-secondary-gold text-primary-navy shadow-sm"
-                    : "text-primary-navy/50 hover:text-primary-navy/70"
-                )}
-              >
-                {t('guests.no')}
-              </button>
-            </div>
 
             <div className="space-y-1.5">
               <label className="block text-start text-[10px] font-bold uppercase tracking-widest text-secondary-gold">
@@ -456,7 +607,7 @@ export const AddWalkInGuest: React.FC<AddWalkInGuestProps> = ({ open, onClose, p
               {errors.deposit && <p className="text-red-500 text-xs">{errors.deposit}</p>}
             </div>
 
-            {depositPaid === 'no' && parseFloat(depositAmount) > 0 && (
+            {!depositPaidUpfront && parseFloat(depositAmount) > 0 && (
               <div className="bg-red-50 border border-red-200 rounded-xl p-3 flex items-start gap-2">
                 <AlertCircle size={14} className="text-red-500 mt-0.5 flex-shrink-0" />
                 <p className="text-[11px] text-red-700 font-bold leading-relaxed text-start">
